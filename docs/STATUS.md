@@ -10,11 +10,27 @@
 
 ## Accepted facts
 
-- MCC uses dedicated servers for matchmade games and Custom Game Browser sessions.
-- Other MCC modes can use a peer-hosted session.
-- The dedicated-server application is called the Unified Dedicated Server (UDS), a wrapper capable of configuring and launching server versions of MCC games.
-- MCC client-to-UDS configuration uses an ICE/STUN-negotiated UDP path.
-- MCC officially supports launching on PC with Easy Anti-Cheat disabled for mods and limited online services.
+**None.**
+
+No claim currently satisfies `docs/EVIDENCE_POLICY.md` §"Claim format", which requires every
+recorded claim to cite evidence IDs. No evidence IDs exist in this repository yet: P0-A is
+repository bootstrap only and banks no retail, binary, or capture evidence.
+
+Five entries previously listed here as accepted facts carried no evidence IDs and could not be
+traced or re-adjudicated. They were relocated to `docs/ARCHITECTURE_HYPOTHESES.md` as H-008
+through H-012, with their stated source context preserved. Nothing was deleted and no evidence
+ID was manufactured to retain them.
+
+A claim enters this section only when it cites at least one evidence ID recorded under
+`evidence/` and its ledger state in `docs/ARCHITECTURE_HYPOTHESES.md` is `Supported`.
+
+## Scope note: Halo Infinite
+
+Halo Infinite is outside project scope. It may be used only as independent secondary source
+(`docs/EVIDENCE_POLICY.md` class 4) for comparative research that suggests where to look. No
+Infinite observation may be promoted to an MCC fact; each must be independently confirmed
+against MCC retail evidence before it is accepted. Hypotheses below that name Infinite do so
+as comparison only.
 
 ## Unresolved hypotheses
 
