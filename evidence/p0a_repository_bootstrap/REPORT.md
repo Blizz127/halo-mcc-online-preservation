@@ -231,3 +231,72 @@ locally only, and pushing them is a separate decision.
 still P0-B: Retail build bank, and it requires its own explicit authorization before any work
 on it begins. Nothing in R1–R3 authorizes retail inspection, capture execution, tooling
 installation, or service implementation.
+
+---
+
+# P0-A corrective closeout
+
+Added after R1–R3, in a single session with no other agent process running (the concurrent
+session, PID 2770896, was confirmed exited before any write in this closeout). This section
+is the last entry for P0-A.
+
+## Concurrent-write integrity audit
+
+The commit chain was audited for damage from the two-session overlap documented above.
+
+| Check | Method | Result |
+|---|---|---|
+| Object-store integrity | `git fsck --full --strict` | No corruption, no missing objects |
+| Blob fidelity | Re-hashed every blob in all six commits via `git cat-file` → `git hash-object` | 25/26/26/26/26/26 blobs, **0 mismatches** |
+| Merge/conflict artifacts | `git grep` for conflict markers across `HEAD` | None |
+| Interleaved writes | Duplicate-heading count on the four files both sessions touched | 15/5/3/3 headings, all unique — no duplication |
+| Truncation | NUL-byte scan, zero-length scan, trailing-newline check | None truncated; only the five intentional `.gitkeep` files are empty |
+| History rewrites | `git reflog` reviewed end to end | None — every commit is forward-only, no amend/rebase/reset landed |
+
+**One dangling object was found and is explained:** commit `f96b64b` ("WIP on main"), dated
+23:09:28. It is a `git stash` object created and orphaned by the auditing session's own
+`stash push`/`stash pop` during verification, not a lost commit from either working session.
+Its tree differs from `main` only by the uncommitted `.gitignore` edit that this closeout
+supersedes. It is unreachable and will be reaped by `git gc`; no content is stranded in it.
+
+**Verdict: the commit chain is clean.** No concurrent-write damage reached any commit. The
+overlap produced redundant *process* — two agents duplicating analysis — but no corrupted,
+truncated, interleaved, or lost repository content.
+
+## Defect corrected in this commit
+
+An uncommitted `.gitignore` modification was left in the working tree at 23:05:10 by the
+session that has since exited. It broadened `*token*.json` → `*token*` (stricter, retained)
+but added un-ignore rules `!*token*.md`, `!*tokens*.md`, and `!account_export*.md`.
+
+Verified effect before correction: `title_token_capture.md`, `spartan_token.md`,
+`xsts_tokens.md`, `token_notes.md`, and `account_export_dump.md` were all committable.
+
+This was **not a regression** — `HEAD` did not ignore those paths either, since it only
+covered `*token*.json`. The defect is that it codified the gap as a deliberate whitelist. A
+captured token pasted into a note is the most likely leak path in this project, and Markdown
+is the format notes are written in, so an explicit carve-out for exactly that combination
+inverts the intended protection.
+
+Correction: the broadening was kept, the three un-ignore rules were dropped, and the rule now
+matches the blanket style already used for `*xuid*` and `*gamertag*`. `git add -f` remains as
+a deliberate, visible escape hatch for any file that must legitimately carry the pattern.
+
+Post-correction verification:
+
+- All nine previously-committable token/account paths — **ignored**.
+- Full 39-path probe set spanning every category in the authorization — **39 probes, 0 failures**.
+- `git ls-files | git check-ignore --stdin` — **empty**, so no tracked file is shadowed by the
+  stricter rules.
+
+## Closeout state
+
+- Bullet 1, P0-A phase-definition conflict — resolved in `27ecccd`, verified here.
+- Bullet 2, evidence IDs for the five accepted facts — resolved in `062c3d2`, verified here:
+  `H-008`–`H-012` exist with populated required-evidence columns, `docs/STATUS.md`
+  §"Accepted facts" reads **None**, and no reference dangles. No evidence ID was fabricated.
+- Bullet 3, concurrent-write check — performed above; chain clean.
+- Bullet 4, one corrective commit — this commit.
+- Bullet 5 — nothing pushed; `origin/main` stays at `280731b`. P0-B not started.
+
+`tests/test_repository_contract.py` passes (1/1) after this change.

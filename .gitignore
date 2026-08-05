@@ -34,14 +34,18 @@ steamapps/
 .env.*
 secrets/
 credentials/
-*token*.json
-*tokens*.json
+# Blanket, no extension carve-out: a captured token pasted into a note is the most
+# likely leak path, and .md is the format notes are written in. Analysis prose does not
+# need "token" in its filename (use docs/AUTH_FLOW.md, not docs/title_token.md). If a
+# file genuinely must carry the pattern, `git add -f` makes that an explicit decision.
+*token*
+*tokens*
 *.jwt
 
 # Account exports / personal identifiers
 *xuid*
 *gamertag*
-account_export*/
+account_export*
 
 # Local scratch and captured evidence not yet reviewed
 scratch/
