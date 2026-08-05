@@ -1,0 +1,66 @@
+# Raw captures — only sanitized excerpts under captures/sanitized are ever committed
+captures/raw/*
+!captures/raw/.gitkeep
+*.pcap
+*.pcapng
+*.cap
+*.har
+*.saz
+*.etl
+
+# Retail binaries, installed game/depot content
+*.exe
+*.dll
+*.pdb
+*.iso
+*.wim
+*.msi
+*.pak
+*.map
+depots/
+depot_*/
+*.vpk
+*.manifest
+steamapps/
+
+# Secrets, credentials, tokens, certificates, keys
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+.env
+.env.*
+secrets/
+credentials/
+*token*.json
+*tokens*.json
+*.jwt
+
+# Account exports / personal identifiers
+*xuid*
+*gamertag*
+account_export*/
+
+# Local scratch and captured evidence not yet reviewed
+scratch/
+local/
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
