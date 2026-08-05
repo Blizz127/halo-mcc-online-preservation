@@ -26,13 +26,27 @@ gh repo create Blizz127/halo-mcc-online-preservation \
 
 ## First bounded work item: P0-A
 
+P0-A is repository bootstrap only, exactly as scoped in `docs/ROADMAP.md` §P0-A: create the
+private repository, pin scope, establish secret handling, and add evidence templates. P0-A
+banks no retail, binary, or capture evidence.
+
 1. Verify `.gitignore` excludes raw captures, binaries, depots, certificates, and tokens.
-2. Record the Windows capture machines without personal identifiers.
-3. Record MCC storefront, installed title packages, launch mode, and executable hashes.
-4. Install and version-pin Wireshark and one HTTP interception tool.
-5. Prove a known HTTPS request is visible both in Wireshark and decrypted capture.
-6. Test MCC with the proxy applied to WinHTTP.
-7. Write a report; do not yet redirect service domains or modify the client.
+2. Confirm the evidence templates and claim format in `docs/EVIDENCE_POLICY.md` are in place.
+3. Write a report; do not yet record retail build identity, install capture tooling, redirect
+   service domains, or modify the client.
+
+### Boundary: not part of P0-A
+
+The steps below are evidence-banking work assigned to later rungs by `docs/ROADMAP.md`. They
+are listed here only to mark the boundary and are **not** authorized by P0-A:
+
+- Record the Windows capture machines without personal identifiers — **P0-B**.
+- Record MCC storefront, installed title packages, launch mode, and executable hashes — **P0-B**.
+- Install and version-pin Wireshark and one HTTP interception tool — **P0-C**.
+- Prove a known HTTPS request is visible both in Wireshark and decrypted capture — **P0-C**.
+- Test MCC with the proxy applied to WinHTTP — **P0-C**.
+
+Each later rung requires its own explicit authorization before it begins.
 
 ## Stop conditions
 
