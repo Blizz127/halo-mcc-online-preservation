@@ -129,3 +129,105 @@ No captures, binaries, tokens, or personal identifiers were present in the scaff
 ## Next gate
 
 Per `docs/ROADMAP.md` and `docs/STATUS.md`, the only authorized next rung is **P0-B: Retail build bank** — recording MCC storefront, app/build identifiers, Steam depot manifests where lawfully available, file hashes, installed DLC/title packages, launch modes, and tool versions, without committing any retail files. P0-B does not begin under this task; it requires separate explicit authorization.
+
+---
+
+# Addendum: post-bootstrap audit and remediation
+
+**Added after the fact.** Everything above this line is the original P0-A report as committed
+in `051aa86` and `280731b`, and is unchanged. This section is a later audit record appended in
+a separate session; it does not revise, retract, or conceal the report history above.
+
+## Audit finding
+
+An independent read-only audit was run against the repository after P0-A was reported
+complete. It accepted the bootstrap itself — ignore coverage, clean commit tree, private
+remote, and the single passing contract test all re-verified — and confirmed the two scope
+inconsistencies that the original report had recorded but, by its own authorization, left
+uncorrected. Those two defects were the audit's substantive findings, and they are the entire
+scope of the remediation below.
+
+At audit time both report commits were **already present on the remote**:
+`git ls-remote origin refs/heads/main` resolved to `280731b`, with `051aa86` as its parent.
+Neither could be edited in place, so remediation had to be forward-only by construction as
+well as by instruction.
+
+### Finding 1 — P0-A definition conflict
+
+`docs/ROADMAP.md` §P0-A scoped the rung to repository bootstrap: create the private
+repository, pin scope, establish secret handling, add evidence templates.
+`docs/PHASE_0_BOOTSTRAP.md` §"First bounded work item: P0-A" scoped it to seven steps, five of
+which are evidence-banking work that `docs/ROADMAP.md` assigns elsewhere — recording capture
+machines and MCC build identity (**P0-B**), and installing capture tooling, proving decrypted
+HTTPS visibility, and testing MCC behind a WinHTTP proxy (**P0-C**). A reader following the
+bootstrap document alone would have treated capture-path work as already authorized. Only the
+narrower ROADMAP definition was ever executed.
+
+### Finding 2 — uncited accepted facts
+
+`docs/STATUS.md` §"Accepted facts" listed five claims about MCC's online architecture and
+launch modes. `docs/EVIDENCE_POLICY.md` §"Claim format" requires every recorded claim to cite
+evidence IDs. None of the five did, and a repository-wide search found **no evidence IDs
+defined anywhere** — expected, since P0-A banks no retail, binary, or capture evidence. The
+five were therefore untraceable and un-adjudicable while carrying the authority of fact.
+
+## Remediation
+
+Three forward-only commits on `main`. No existing commit was rewritten, reset, rebased,
+amended, squashed, or reverted; no force-push was performed; nothing was pushed at all.
+
+| Rung | Commit | Message | Files changed |
+|---|---|---|---|
+| R1 | `27ecccd3cf90e99b1a2f71eefc79308d0daeef05` | `Clarify P0-A bootstrap boundary` | `docs/PHASE_0_BOOTSTRAP.md` |
+| R2 | `062c3d2b0f4b9f0d85da186c3c4ad519e927839a` | `Align MCC claims with evidence policy` | `docs/ARCHITECTURE_HYPOTHESES.md`, `docs/STATUS.md` |
+| R3 | this commit | `Document P0-A remediation audit` | `evidence/p0a_repository_bootstrap/REPORT.md` |
+
+**R1** restated §"First bounded work item: P0-A" as repository bootstrap only, matching
+`docs/ROADMAP.md`, and moved the five later-rung steps into a "Boundary: not part of P0-A"
+list that names the owning rung (P0-B or P0-C) and marks each as unauthorized. P0-A was not
+broadened; no later rung was authorized.
+
+**R2** emptied §"Accepted facts" and stated plainly that no claim currently satisfies the
+evidence policy, rather than manufacturing evidence IDs to retain the five entries. They were
+relocated to `docs/ARCHITECTURE_HYPOTHESES.md` as **H-008 – H-012**, each `Unproven` with its
+required evidence and consequence recorded, plus a provenance note preserving their apparent
+source context — public statements on MCC online architecture (H-008 – H-011) and official MCC
+support documentation for the EAC-disabled launch mode (H-012) — explicitly as investigation
+leads, not as evidence. A scope statement was added to both documents keeping Halo Infinite
+outside project scope, admissible only as independent secondary source that must be
+independently confirmed against MCC evidence before it can change any claim's state.
+
+## Test and validation results
+
+Run with the existing project-local `.venv` (`.venv/bin/python -m pytest -q`), which remains
+untracked and ignored:
+
+```
+tests/test_repository_contract.py::test_required_phase_zero_documents_exist PASSED [100%]
+1 passed
+```
+
+That is the full repository suite — one test, the Phase-0 document contract, which still
+passes because R1 and R2 edited required documents in place and removed none.
+
+| Check | Result |
+|---|---|
+| Full test suite | 1 passed, 0 failed |
+| `git diff --check` | clean, exit 0 |
+| Markdown well-formed | verified — headings, fences, and table column counts consistent in all three edited files |
+| Working tree | clean; no untracked or modified files |
+| History shape | `a4a1b2b` ← `051aa86` ← `280731b` ← R1 ← R2 ← R3, linear, no rewrite |
+| Added material | documentation text only — no captures, binaries, tokens, secrets, certificates, game assets, or retail files |
+
+## Local and remote relationship
+
+Local `main` is three commits ahead of `origin/main`. `origin/main` remains at `280731b` and
+was not modified: nothing was pushed under this task. The three remediation commits exist
+locally only, and pushing them is a separate decision.
+
+## Authorization status
+
+**P0-B remains unauthorized.** This task covered audit remediation only. The next rung is
+still P0-B: Retail build bank, and it requires its own explicit authorization before any work
+on it begins. Nothing in R1–R3 authorizes retail inspection, capture execution, tooling
+installation, or service implementation.
