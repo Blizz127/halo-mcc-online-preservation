@@ -1,0 +1,631 @@
+{
+  "rung": "P0-B1",
+  "install_dir_name": "Halo The Master Chief Collection",
+  "steam_appmanifest": {
+    "manifest_path": "<HOME>/.local/share/Steam/steamapps/appmanifest_976730.acf",
+    "app_state": {
+      "appid": "976730",
+      "Universe": "1",
+      "name": "Halo: The Master Chief Collection",
+      "StateFlags": "4",
+      "installdir": "Halo The Master Chief Collection",
+      "lastupdated": "1785784664",
+      "LastPlayed": "0",
+      "SizeOnDisk": "31243646753",
+      "StagingSize": "0",
+      "buildid": "19905945",
+      "DownloadType": "1",
+      "UpdateResult": "0",
+      "BytesToDownload": "19705447200",
+      "BytesDownloaded": "19705447200",
+      "BytesToStage": "31243920863",
+      "BytesStaged": "31243920863",
+      "TargetBuildID": "19905945",
+      "AutoUpdateBehavior": "0",
+      "AllowOtherDownloadsWhileRunning": "0",
+      "ScheduledAutoUpdate": "0",
+      "InstalledDepots": {
+        "976731": {
+          "manifest": "4956458579120161185",
+          "size": "17126952679"
+        },
+        "1064225": {
+          "manifest": "2839831772411294252",
+          "size": "9743362106",
+          "dlcappid": "1064220"
+        },
+        "1064226": {
+          "manifest": "1185971278520087384",
+          "size": "7824947258",
+          "dlcappid": "1097224"
+        }
+      },
+      "InstallScripts": {
+        "976731": "installscript.vdf"
+      },
+      "SharedDepots": {
+        "228987": "228980",
+        "228990": "228980",
+        "229005": "228980"
+      },
+      "UserConfig": {
+        "language": "english"
+      },
+      "MountedConfig": {
+        "language": "english"
+      }
+    },
+    "redacted_fields": [
+      "LastOwner"
+    ]
+  },
+  "proton_selection": {
+    "appid": "976730",
+    "explicit_config_override": null,
+    "compat_tool_mapping_present_but_empty": true,
+    "runtime_evidence": {
+      "compatdata_dir": "<HOME>/.local/share/Steam/steamapps/compatdata/976730",
+      "exists": true,
+      "version_file": "11.0-100",
+      "config_info_lines": [
+        "11.0-100",
+        "<HOME>/.local/share/Steam/steamapps/common/Proton - Experimental/files/share/fonts/",
+        "<HOME>/.local/share/Steam/steamapps/common/Proton - Experimental/files/lib/",
+        "<HOME>/.local/share/Steam",
+        "1784936610.0",
+        "1784936614.0",
+        "1516738214.0",
+        "<HOME>/.local/share/Steam/steamapps/common/Proton - Experimental/files/share/default_pfx/",
+        "1785352850.965618",
+        "False",
+        "True",
+        "d3dcompiler_*.dll,d3dcsx*.dll,d3dx*.dll,dx8vb.dll,x3daudio*.dll,xactengine*.dll,xapofx*.dll,xaudio*.dll,xinput*.dll,atl1*.dll,atl.dll,concrt*.dll,msvcp1*.dll,msvcrt*.dll,msvcp7*.dll,msvcp6*.dll,msvcp_win.dll,msvcr1*.dll,msvcrt*.dll,msvcr7*.dll,vcamp1*.dll,vcomp1*.dll,vccorlib1*.dll,vcruntime1*.dll,ucrtbase.dll,comctl32.dll,ntdll.dll,vulkan-1.dll,ir50_32.dll",
+        "True",
+        "False"
+      ],
+      "resolved_tool_dir_name": "Proton - Experimental",
+      "prefix_dir": "<HOME>/.local/share/Steam/steamapps/compatdata/976730/pfx",
+      "prefix_top_level_entries": [
+        ".update-timestamp",
+        "creation_sync_guard",
+        "dosdevices",
+        "drive_c",
+        "system.reg",
+        "system.reg.old",
+        "user.reg",
+        "userdef.reg"
+      ]
+    },
+    "resolved_tool_manifest": {
+      "tool_dir": "<HOME>/.local/share/Steam/steamapps/common/Proton - Experimental",
+      "toolmanifest": {
+        "version": "2",
+        "commandline": "/proton %verb%",
+        "require_tool_appid": "4183110",
+        "use_sessions": "1",
+        "compatmanager_layer_name": "proton"
+      },
+      "version_file": "1785137693 experimental-11.0-20260724c"
+    }
+  },
+  "steam_launch_options": {
+    "<STEAM_ACCOUNT_ID>": {
+      "localconfig_path": "<HOME>/.local/share/Steam/userdata/<STEAM_ACCOUNT_ID>/config/localconfig.vdf",
+      "found_file": true,
+      "launch_options": null
+    }
+  },
+  "file_inventory": {
+    "root": "<MCC_INSTALL_ROOT>",
+    "include_extensions": [
+      ".bond",
+      ".cer",
+      ".cfg",
+      ".conf",
+      ".config",
+      ".dll",
+      ".exe",
+      ".ini",
+      ".json",
+      ".txt",
+      ".vdf",
+      ".xml"
+    ],
+    "entry_count": 90,
+    "entries": [
+      {
+        "relative_path": "Bond/CustomStructures.bond",
+        "size_bytes": 3208,
+        "sha256": "21ca9c3201b2a03a286db87ddb0d5549fd7efd53f9d147e9c3989428787a437b"
+      },
+      {
+        "relative_path": "Bond/eCellCategory_services.bond",
+        "size_bytes": 108081,
+        "sha256": "5a4cff2cac5dadcbf031cabb515c6ef0fd0cd7b386993a4f683bb560283fe1aa"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Frontend.json",
+        "size_bytes": 8938,
+        "sha256": "f2fbd8837f511d63f3ef7dc0b34653a26d4065d93fcb438a38d2c9684134df1f"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo1.json",
+        "size_bytes": 42490,
+        "sha256": "50bb557be19afe1634b464e7c78c26be1792fa5f759b6ce5d6f325e2fd2c58bb"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo1Controller.json",
+        "size_bytes": 17849,
+        "sha256": "bd0b7ce3c9be788cea3af071e9b93df83490502d25878ad9138130b4b9d5f003"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo2.json",
+        "size_bytes": 9153,
+        "sha256": "62fba58fa0c5ef64ad70da496350eb8bff2e1152742dca9463c2314848755d8e"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo2A.json",
+        "size_bytes": 4300,
+        "sha256": "a6c4987aa6aebd777f17d0e9bceafb54454f9a89368a22817b527fd96a1783e6"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo2AController.json",
+        "size_bytes": 5869,
+        "sha256": "9a237217de540f9754d4a5a65b21f6477571bdfc613460c2e2649102d8c92ef8"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo2Controller.json",
+        "size_bytes": 23816,
+        "sha256": "d1cc292306ce0d7032ffa19bce44686a122ddc029408956fcfe6bb5fa2d347a9"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo3.json",
+        "size_bytes": 8353,
+        "sha256": "9aca0db71f53144f48dd0c4e526f207e31b5d36b9367fbf194b01c84c575fd54"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo3Controller.json",
+        "size_bytes": 24095,
+        "sha256": "608203c94a7d489131b8e1792b9ce09436875625d7314aab391c28e93f713471"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo3ODST.json",
+        "size_bytes": 6544,
+        "sha256": "536f032e3e6168faecb54c27eaab3be7de4ddcffd0f70d2756b68458c1f1d65e"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo3ODSTController.json",
+        "size_bytes": 25342,
+        "sha256": "ae84bf3583842314dd2da22d72e5b2cbd26ed7ac746ca5f1630925a6434387b9"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo4.json",
+        "size_bytes": 11992,
+        "sha256": "6d8c5fe4799b0a41d35f78812af5d00297a5bff00c95603d7afddc22b6cea192"
+      },
+      {
+        "relative_path": "Data/BuiltInData/Halo4Controller.json",
+        "size_bytes": 20832,
+        "sha256": "397d9795ffb2be013f97395aeb520a346e10525a7e053cc5fb3eba3d52c02707"
+      },
+      {
+        "relative_path": "Data/BuiltInData/HaloReach.json",
+        "size_bytes": 8501,
+        "sha256": "da4a26676e81f288aad702c86bb687d261d80f08941dc4a942bd78e7c64baa23"
+      },
+      {
+        "relative_path": "Data/BuiltInData/HaloReachController.json",
+        "size_bytes": 23287,
+        "sha256": "483ed30969837be5e1fc4bedb90b32336d5d7ccb28facb0301f6bca116ce1117"
+      },
+      {
+        "relative_path": "Data/UI/config/fontdefinition.xml",
+        "size_bytes": 7494,
+        "sha256": "c86241aa5c338f11841431f56ad000c2941615122f6b7d9be7ac1c71975d5476"
+      },
+      {
+        "relative_path": "Data/UI/gametiplist.xml",
+        "size_bytes": 30167,
+        "sha256": "1701a89d6e878796e3d98b771aad7e46b2f1e8bafd58bfed72b0e2f032c86dd4"
+      },
+      {
+        "relative_path": "Data/UI/playercustomization.xml",
+        "size_bytes": 237272,
+        "sha256": "01831a887280fbd1474cf8dc9a9f388efb1a4bf6c8082b7661588e2d29c64a0c"
+      },
+      {
+        "relative_path": "Data/UI/scoredb.xml",
+        "size_bytes": 21000,
+        "sha256": "5c2364f1592005662d1ea2458dc43141c0d6fc64c138dca35bf2c25f2c3ef268"
+      },
+      {
+        "relative_path": "Data/UI/texturepacks.xml",
+        "size_bytes": 1091,
+        "sha256": "b974bf474e977b3678820940c58a8d528bc91c57cc9e556fdc395dc588dd1fb2"
+      },
+      {
+        "relative_path": "Data/UI/unlockdb.xml",
+        "size_bytes": 363435,
+        "sha256": "bf3864d4209c7aded187e3a194cb67b16b9250dd7a9c2868f7ae546c703d264f"
+      },
+      {
+        "relative_path": "Data/audio/audioui.xml",
+        "size_bytes": 7100,
+        "sha256": "c3fae33009fb1b5c745bd09ad94720cc7846620f87ddc5df860021cf9e93f08c"
+      },
+      {
+        "relative_path": "Data/audio/soundbanks.xml",
+        "size_bytes": 819,
+        "sha256": "a692904ff591611dbe404e56eba31109542dae114d9576e2be414e5d1662c0bf"
+      },
+      {
+        "relative_path": "Data/audio/soundbanksizes.xml",
+        "size_bytes": 53,
+        "sha256": "5580f5f70353b093a8d43857ab9f7f007f44dbc9bc1621d64bc83093497cd428"
+      },
+      {
+        "relative_path": "Data/careerdb/base-service-settings-v3.json",
+        "size_bytes": 2345,
+        "sha256": "000db772194743460a0d6986a567862ebb3781a1b28c7d14ec46bda5304a77b8"
+      },
+      {
+        "relative_path": "Data/careerdb/careerdb.xml",
+        "size_bytes": 338610,
+        "sha256": "b3735e3af7c6c1117d1e6d1411ade6c77b34485b9ad393135b4b3f622d2a4aca"
+      },
+      {
+        "relative_path": "Data/careerdb/findgamehopperdb-v4.xml",
+        "size_bytes": 738827,
+        "sha256": "cc2f0790a8c3166fcc6f95d97eb61a303948a1199753c6dcbf7866cf633d8715"
+      },
+      {
+        "relative_path": "Data/careerdb/halo-service-settings-v3.json",
+        "size_bytes": 10577,
+        "sha256": "36f43c0125cb42ebf927c29a8b1ec69d77d78dbaf5d26533bde4ce9e195ef1e0"
+      },
+      {
+        "relative_path": "Data/careerdb/missionplaylistdb.xml",
+        "size_bytes": 152975,
+        "sha256": "96b4feabae48f273a7cb23b6f7dd39d3ae9dc2c1ef795fc71402c5654b949eaf"
+      },
+      {
+        "relative_path": "Data/careerdb/serverversiondb.xml",
+        "size_bytes": 13249,
+        "sha256": "9923b4b96f54cce32df2bc55446abf4fe1c41ef763b53e62a73644b0adbe016c"
+      },
+      {
+        "relative_path": "Data/global/texturepacks.xml",
+        "size_bytes": 149,
+        "sha256": "5debe7fdd92c23c516743ef120158afba1009b364dc418aafe329d51918ad020"
+      },
+      {
+        "relative_path": "Data/settings/default.xml",
+        "size_bytes": 7394,
+        "sha256": "439bb8f6de7a66d9772370c346d118f66a4901c636fa8022a9408bd4cd7e2519"
+      },
+      {
+        "relative_path": "Data/settings/optionsdata.xml",
+        "size_bytes": 234537,
+        "sha256": "44d0a7b454aa9eb92d22a7b81a6e1f47f39505989348fe63ff9916b0547249ee"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/chrome_elf.dll",
+        "size_bytes": 547840,
+        "sha256": "8a06b6f35fde228a7aa55ce6d6a4cc84a0c3443468d618850a868ce4e56909bb"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/d3dcompiler_43.dll",
+        "size_bytes": 2106216,
+        "sha256": "2f23182ec6f4889397ac4bf03d62536136c5bdba825c7d2c4ef08c827f3a8a1c"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/d3dcompiler_47.dll",
+        "size_bytes": 4488904,
+        "sha256": "d82f77d802ff05d4da0c82335a05613604da243513faa7fb145aaad0119bddb5"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/libEGL.dll",
+        "size_bytes": 92672,
+        "sha256": "63580999b8210315b664e7742b6d4f59e587d20b4d0826072a5ef311c6f25b74"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/libGLESv2.dll",
+        "size_bytes": 3922432,
+        "sha256": "99f261fa5a69dd2b3bd6192aaf72a0d9f88d769a311fac87963658a7573ec669"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "size_bytes": 98275328,
+        "sha256": "801f122c61770d97af98f560e16b6279e3b65ba4eec0d9e1786f691b1bddf7a2"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/CEF3/Win64/widevinecdmadapter.dll",
+        "size_bytes": 275456,
+        "sha256": "cc9cd7a1e1a9d364a70b5a63b38c5fe755ec028e1428c3d9a372cd4cb6485d11"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/GFSDK_Aftermath_Lib.x64.dll",
+        "size_bytes": 117760,
+        "sha256": "41e6d6e6b691b8aca94aa35bf04e7a204f02ec843e192cc4d28f421ec517934a"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Clothing_x64.dll",
+        "size_bytes": 1219072,
+        "sha256": "19d6b220548f557d0d28327d4a88c4e90ba275616af05bbf678ebe78932917ae"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Destructible_x64.dll",
+        "size_bytes": 2009088,
+        "sha256": "020cefa6c036894f912c69eef981efef7d3ffb6a89000efac4888ddd00c255a8"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Legacy_x64.dll",
+        "size_bytes": 3329536,
+        "sha256": "534587ab8b12b753b9d7a367c8290dc763c149bf91877c16bf4593134ec87ae5"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Loader_x64.dll",
+        "size_bytes": 28672,
+        "sha256": "b6966dd1c090d8b3896fc2ce9b92c4bab848b86e57e2259c8f72ed67298a077d"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/ApexFramework_x64.dll",
+        "size_bytes": 1043456,
+        "sha256": "349798c04bf476eb40ad4deb6f75065a565d30103d31f5d966f7653670ec7d77"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/NvCloth_x64.dll",
+        "size_bytes": 265216,
+        "sha256": "8401ab9fcad79efd9adbc5389fb9c73b7f1a7678bfa3f63e9da934c10d5c78ac"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3Common_x64.dll",
+        "size_bytes": 1596928,
+        "sha256": "eda07609faaf47f53a1d3617dddf5341f25d83eba8821c024b93563f6b257a6b"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3Cooking_x64.dll",
+        "size_bytes": 244736,
+        "sha256": "21ad1c728bb51406254d114ced7f3d43ab509a17b3b6b8b29eaeb8e9d2df9d67"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3_x64.dll",
+        "size_bytes": 2105856,
+        "sha256": "acdc0c0e79fdf8d2f72e587fa392e523f068b2c02cfb109a8f3443e5aa8cd153"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PxFoundation_x64.dll",
+        "size_bytes": 54784,
+        "sha256": "5b25c290f7e63a0e4c20560900df668e99cc898d7565d2c3a6ebf9f611fa0ecd"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PxPvdSDK_x64.dll",
+        "size_bytes": 188928,
+        "sha256": "c324eef356a1b158b7f0ebfc087d4399131dce4bda279f83f702ba0bb42cc060"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/ogg/Win64/VS2015/libogg_64.dll",
+        "size_bytes": 49152,
+        "sha256": "284a6e70a6dce01f8a02d93e1bb78baf0efb6140459c587d8986d59fb6bd675b"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/vorbis/Win64/VS2015/libvorbis_64.dll",
+        "size_bytes": 1714176,
+        "sha256": "0f66dcb5837e9b59c499277fd272b862043356aa9145802cf0a63e00a1bcca59"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/vorbis/Win64/VS2015/libvorbisfile_64.dll",
+        "size_bytes": 37888,
+        "sha256": "a9d6f5538f44011c1f65d7ace64216a237636717cb0c8c59f4f89cc08dd3d24f"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/windows/directx/x64/WinPixEventRuntime.dll",
+        "size_bytes": 44752,
+        "sha256": "0afaa35527ac034861ffa5564e5f6bd9e4d54e79132b3283cdd98e41f5584d19"
+      },
+      {
+        "relative_path": "Engine/Binaries/ThirdParty/windows/directx/x64/d3dcompiler_47.dll",
+        "size_bytes": 4173928,
+        "sha256": "e994847e01a6f1e4cbdc5a864616ac262f67ee4f14db194984661a8d927ab7f4"
+      },
+      {
+        "relative_path": "Engine/Binaries/Win64/UnrealCEFSubProcess.exe",
+        "size_bytes": 3693568,
+        "sha256": "0499c4073b070710da3cf39ecb7abae803a8dfbe74fb2a5d7b81bbd146c46f49"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/EOSSDK-Win64-Shipping.dll",
+        "size_bytes": 18199528,
+        "sha256": "aba8695b971b5e247a03b0269ca0678c3d164d6ac1b15c78f512356ada74d09e"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/MCC-Win64-Shipping.exe",
+        "size_bytes": 67179480,
+        "sha256": "be70d6dcd1a884f10ceb342a7a2dcb35ee0fa43181b66a1d19c3d830e9834691"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/PartyWin.dll",
+        "size_bytes": 2644352,
+        "sha256": "e2693da6685c3de950f4232cc2109e228006105260ec8569ed4d34fe9c879718"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/PartyWin7.dll",
+        "size_bytes": 5064576,
+        "sha256": "5bca6077ba9e1b7a8f68a9a56247d522485054941ae895d3282363c0fa7fa9c4"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/bink2w64.dll",
+        "size_bytes": 382464,
+        "sha256": "084540c578eaeccd38b319f641cfbdcfff34b7ec5ad90dd71f5a2cf6a61e3f40"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/cell_release_x64_4_0.dll",
+        "size_bytes": 815064,
+        "sha256": "6ee5698253f989c09beed87674f17b4a8a02c4c307923f475851ce01d5314131"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/halonetworklayer_ship.dll",
+        "size_bytes": 1053144,
+        "sha256": "c1db31b882d822987ebacef7d8ff4d8ca81100fb411ac3078b407c02b3db0c3a"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/liblz4.dll",
+        "size_bytes": 74240,
+        "sha256": "1a6477efa7dc0726c7b43abc23bb875082194a752ab9099aada9848b5eb1a505"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/simplenetworklibrary-x64-release.dll",
+        "size_bytes": 5278168,
+        "sha256": "048a98ef9d3e2eec3b623a96467eae1bd87d52235b8b4cbbc92b5207d7f770da"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/steam_api64.dll",
+        "size_bytes": 298384,
+        "sha256": "1db3fd414039d3e5815a5721925dd2e0a3a9f2549603c6cab7c49b84966a1af3"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/xaudio2_9redist.dll",
+        "size_bytes": 846712,
+        "sha256": "5f39b8e97a8736624a074a49c37a8f3dee28e4661eb42721fb117e97d765545c"
+      },
+      {
+        "relative_path": "MCC/Binaries/Win64/xforgelibrary_release.dll",
+        "size_bytes": 868824,
+        "sha256": "83494d7278fde13e75fbd94b9046ce551bc5de85893d0a2031c8ede8c407d7dc"
+      },
+      {
+        "relative_path": "MCC/Content/Bink/Bink2W64_UE.dll",
+        "size_bytes": 382464,
+        "sha256": "084540c578eaeccd38b319f641cfbdcfff34b7ec5ad90dd71f5a2cf6a61e3f40"
+      },
+      {
+        "relative_path": "MCC/Content/Bink/binkpluginw64.dll",
+        "size_bytes": 1150464,
+        "sha256": "ad84cd7766ff09293b9321ffe40eba224c813410415a9d6f35abd0e7c263c354"
+      },
+      {
+        "relative_path": "SC_DLL.dll",
+        "size_bytes": 4802560,
+        "sha256": "74ac1e285b98321cd8ce23c314b4681de067b2184538c5ba79d49d4b20864a57"
+      },
+      {
+        "relative_path": "app.config",
+        "size_bytes": 189,
+        "sha256": "088c0ae42ef2170e26804fb7ac3eb6ca08c3d99adffb94e43573f68db3bff9e0"
+      },
+      {
+        "relative_path": "build_tag.txt",
+        "size_bytes": 41,
+        "sha256": "d6ea923fe4ba80beb4adc053740adaf74801eda65c62f94410837f03adb8c693"
+      },
+      {
+        "relative_path": "d3dcompiler_47.dll",
+        "size_bytes": 4401664,
+        "sha256": "8c4376413d887947468b2008de3c2fa7b8c59707881dd2589ee9f2adea7cd694"
+      },
+      {
+        "relative_path": "easyanticheat/Certificates/base.cer",
+        "size_bytes": 1165,
+        "sha256": "d0e935f5e985abd4816e7094e7ffee6082d7b8de868acb10ac20442190df4eec"
+      },
+      {
+        "relative_path": "easyanticheat/Certificates/runtime.conf",
+        "size_bytes": 1108,
+        "sha256": "8dc089123c226faaf156b24900ed6ed712416a6f4db7f8223356745efb768a46"
+      },
+      {
+        "relative_path": "easyanticheat/easyanticheat_eos_setup.exe",
+        "size_bytes": 964336,
+        "sha256": "652761ed1fa44955ffde4c3daeb0654937f7cdef7a3a05ddf509c2e707f46e0d"
+      },
+      {
+        "relative_path": "easyanticheat/settings.json",
+        "size_bytes": 457,
+        "sha256": "0532c64bc1948464c488348a6dbca2a70ca7919285327beb17620b7c7e5120d4"
+      },
+      {
+        "relative_path": "haloreach/haloreach.dll",
+        "size_bytes": 13229016,
+        "sha256": "738dd2d24ea3aea12e1ee9aa4a61094bf116027d42004c35a19e5048608b0894"
+      },
+      {
+        "relative_path": "haloreach/waves/L360.dll",
+        "size_bytes": 467456,
+        "sha256": "ad18ff2df8f8821553a3edf4c1be617c89df4d55f4911b9fb9506dd65e887e5f"
+      },
+      {
+        "relative_path": "haloreach/waves/Q10.dll",
+        "size_bytes": 453120,
+        "sha256": "f18308742b2f7509c37489cc0f47cd536593b2134c33f5025705f26fe66f19e7"
+      },
+      {
+        "relative_path": "haloreach/waves/WaveShell-Xbox.dll",
+        "size_bytes": 352768,
+        "sha256": "5c5675e3ac91decbc4bb2a9918c618503e9551da737ed3e1e346754ae6c45485"
+      },
+      {
+        "relative_path": "haloreach/waves/WavesLibDLL.dll",
+        "size_bytes": 1696768,
+        "sha256": "e9d2352d87fc39a1396197d8b05c8223a0ffba2757fc73fb87bab2aa27ef7ab1"
+      },
+      {
+        "relative_path": "installers/easyanticheat_eos_setup.exe",
+        "size_bytes": 964336,
+        "sha256": "652761ed1fa44955ffde4c3daeb0654937f7cdef7a3a05ddf509c2e707f46e0d"
+      },
+      {
+        "relative_path": "installscript.vdf",
+        "size_bytes": 1074,
+        "sha256": "44599bb3737dc7f5f4fcb82f42e25ad1c46e4f1f89248fcae6cbabd591644b5e"
+      },
+      {
+        "relative_path": "mcclauncher.exe",
+        "size_bytes": 3946736,
+        "sha256": "e86f518b447a90790f8458bd7be36bc42ae3cdaf723e6b9efcdcea3b544fd95c"
+      }
+    ]
+  },
+  "identity_files": {
+    "app.config": "{  \n\t\"xal\":\n\t{  \n\t\t\"title_id\":1144039928,\n\t\t\"service_config_id\":\"77290100-225e-4768-9373-98164430a9f8\",\n\t\t\"client_id\":\"000000004825FC1F\"\n\t},\n\t\"steam\":\n\t{\n\t\t\"app_id\":976730\n\t}\n}\n",
+    "build_tag.txt": "2025.08.16.178512.1-Release  \nRelease \n",
+    "easyanticheat/settings.json": "{\n    \"executable\": \"MCC\\\\Binaries\\\\Win64\\\\MCC-Win64-Shipping.exe\", \n    \"title\": \"Halo: The Master Chief Collection\", \n    \"deploymentid\": \"2aa549857cb249f59a569bafdbb6c693\", \n    \"sandboxid\": \"185b73671d864906abe776c925b35a38\", \n    \"hide_gui\": \"true\", \n    \"hide_bootstrapper\": \"false\", \n    \"requested_splash\": \"EasyAntiCheat/SplashScreen.png\", \n    \"wait_for_game_process_exit\": \"false\", \n    \"productid\": \"65f3348d248347a5bd809372b15cf268\"\n}"
+  },
+  "host_and_tool_versions": {
+    "os_release": {
+      "pretty_name": "Bazzite",
+      "version": "44.20260801.0 (Kinoite)",
+      "version_id": "44",
+      "build_id": "Stable (F44.20260802)",
+      "image_id": "bazzite-nvidia-open-44.20260802",
+      "variant_id": "bazzite-nvidia-open",
+      "ostree_version": "44.20260801.0"
+    },
+    "kernel": "Linux <HOSTNAME> 7.1.5-ogc5.1.fc44.x86_64 #1 SMP PREEMPT_DYNAMIC Sat Aug  1 09:46:08 UTC 2026 x86_64",
+    "steam_package_version": "steam-1.0.0.87-1.fc44.x86_64",
+    "nvidia_driver_version": "610.43.03",
+    "vulkan_gpu_drivers": [
+      {
+        "device_name": "Intel(R) Graphics (ARL)",
+        "driver_id": "DRIVER_ID_INTEL_OPEN_SOURCE_MESA",
+        "driver_name": "Intel open-source Mesa driver",
+        "driver_info": "Mesa 26.1.6"
+      },
+      {
+        "device_name": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+        "driver_id": "DRIVER_ID_NVIDIA_PROPRIETARY",
+        "driver_name": "NVIDIA",
+        "driver_info": "610.43.03"
+      },
+      {
+        "device_name": "llvmpipe (LLVM 22.1.8, 256 bits)",
+        "driver_id": "DRIVER_ID_MESA_LLVMPIPE",
+        "driver_name": "llvmpipe",
+        "driver_info": "Mesa 26.1.6 (LLVM 22.1.8)"
+      }
+    ],
+    "git_version": "git version 2.55.0",
+    "python_version": "Python 3.14.6",
+    "powershell_version": null,
+    "sha256sum_version": "sha256sum (GNU coreutils) 9.10"
+  }
+}
