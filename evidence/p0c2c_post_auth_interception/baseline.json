@@ -1,0 +1,22 @@
+{
+  "rung": "P0-C2C",
+  "stage_a_direct_auth": {
+    "proxy_configured": false,
+    "redirect_active": false,
+    "sign_in": "succeeded (via cached Microsoft/Xbox session; no credential prompt shown)",
+    "main_menu_reached": true,
+    "note": "Sign-in used a cached session, so no credentials were entered. This still satisfies the baseline requirement: identity was established through the normal direct network path with no proxy and no redirect, i.e. identity was NOT under interception."
+  },
+  "selected_host": "settings.svc.halowaypoint.com",
+  "baseline_resolution": {
+    "selected_host_ipv4": [
+      "20.184.144.194"
+    ],
+    "cname": "s3p-settings-wus-dispatcher-production.westus.cloudapp.azure.com",
+    "identity_hosts_sample": {
+      "login.live.com": "real Microsoft identity IPs (20.190.x / 40.126.x)",
+      "xsts.auth.xboxlive.com": "20.201.200.49",
+      "user.auth.xboxlive.com": "20.201.192.99"
+    }
+  }
+}

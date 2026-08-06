@@ -24,13 +24,19 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   own Root certificate store writable without administrative privilege. MCC certificate acceptance
   and pinning left **unresolved**. `evidence/p0c2a_https_visibility/`, `docs/HTTPS_VISIBILITY.md`.
 - **P0-C2B — Read-only MCC title-service request/response capture.** *Complete, with no capture
-  taken.* MCC does not complete Microsoft/Xbox sign-in through an explicit proxy even with every
-  identity host blind-tunnelled and zero decryption, so Stage B was never eligible. Narrowed H-007.
+  taken.* In both tested explicit-proxy configurations, Xbox sign-in failed despite every identity
+  host being blind-tunnelled with zero decryption, so Stage B was never eligible. Narrowed H-007.
   `evidence/p0c2b_title_service_capture/`, `docs/TITLE_SERVICE_CAPTURE.md`.
-- **P0-C2C — MCC endpoint manifest and configuration-surface discovery.** *Not started, requires its
-  own authorization.* Should not assume proxy-based access; the open question is why MCC will not
-  authenticate through a proxy, and whether an observation path exists that does not disturb
-  sign-in.
+- **P0-C2C — Post-authentication single-host title-service interception.** *Complete, with no
+  exchange captured.* Direct sign-in succeeds with no proxy, and an exact-host post-boot redirect
+  affected exactly one host with identity untouched, but MCC reused a persistent boot-time connection
+  to the settings service and never contacted the observer. Certificate acceptance/pinning remain
+  unresolved. Further narrowed H-007. `evidence/p0c2c_post_auth_interception/`,
+  `docs/POST_AUTH_INTERCEPTION.md`.
+- **P0-C2D — MCC endpoint manifest and configuration-surface discovery.** *Not started, requires its
+  own authorization.* Must not assume a redirect intercepts a reused connection: needs a trigger
+  proven to force a fresh settings fetch, or a mechanism acting before the connection is established
+  without running identity under interception.
 
 ### P0-D: Cold-boot service inventory
 Capture DNS, TLS SNI, HTTP(S), WebSocket, AMQP if present, STUN/TURN/ICE, and UDP flows from a fresh profile. Identify manifests before enumerating endpoints manually.

@@ -3,16 +3,16 @@
 Status of efforts to observe MCC's own title-service HTTP exchanges. Every statement cites an
 evidence ID resolving to `evidence/p0c2b_title_service_capture/`.
 
-**Current status: no MCC title-service exchange has been captured.** MCC does not complete
-Microsoft/Xbox sign-in through an explicit proxy, and every rung so far has stopped there rather
-than decrypt authentication traffic.
+**Current status: no MCC title-service exchange has been captured.** In every tested explicit-proxy
+configuration, Xbox sign-in failed rather than completing, and every rung so far has stopped there
+rather than decrypt authentication traffic.
 
 ## What is blocking capture
 
 | Observation | Evidence |
 |---|---|
 | MCC honours `http_proxy`/`https_proxy` and routes traffic through the proxy | `E-P0C2A-004` |
-| With traffic proxied, Xbox Live sign-in **fails** — reproduced twice, across two proxy implementations | `E-P0C2A-004`, `E-P0C2B-001` |
+| With traffic proxied, Xbox Live sign-in failed in both tested proxy configurations (does not prove all methods fail) | `E-P0C2A-004`, `E-P0C2B-001` |
 | The failure is not a relay failure: tunnels carried 6–63 KB per host bidirectionally | `E-P0C2B-002` |
 | Fixing the most plausible mechanical cause (tunnel half-close teardown) did **not** fix it | `E-P0C2B-002` |
 | The failure does not persist: after rollback, sign-in succeeds normally | `E-P0C2B-004` |
@@ -66,7 +66,7 @@ rough order of how much they disturb the client:
 
 ## Interpretation boundary
 
-Established: that proxied sign-in reproducibly fails; that tunnels relay correctly; that nothing has
+Established: that proxied sign-in failed in both tested configurations; that tunnels relay correctly; that nothing has
 been decrypted.
 
 **Not** established: the cause of the failure; any MCC request or response shape; whether MCC accepts

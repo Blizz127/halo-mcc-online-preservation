@@ -26,7 +26,14 @@ shuts down only the finished direction.
 A `bytes_relayed` counter was added at the same time, so tunnel throughput became observable without
 inspecting any content. That counter is what makes Claim 2 below possible.
 
-## Claim 1 — MCC does not complete Xbox Live sign-in through an explicit proxy, even with zero decryption
+## Claim 1 — Both tested explicit-proxy configurations coincided with Xbox sign-in failure, despite successful blind tunneling
+
+> **Wording note (added under P0-C2C).** This claim's original heading read "MCC does not complete
+> Xbox Live sign-in through an explicit proxy". That overstated a two-sample result. The evidence is
+> that **both tested explicit-proxy implementations coincided with Xbox sign-in failure despite
+> successful blind tunneling**; it does not prove that every possible proxy method fails during
+> sign-in. The heading and the H-007 note below are corrected accordingly. The body already hedged
+> ("'unlikely' is not 'excluded', and no stronger claim is made").
 
 **Claim:** With the proxy in tunnel mode and every identity host blind-tunnelled, MCC again failed
 to sign in: the operator observed an Xbox Live sign-in error and the main menu was never reached.
@@ -146,10 +153,11 @@ is not MCC evidence and must never be cited as such.
 ## Hypothesis impact
 
 `docs/ARCHITECTURE_HYPOTHESES.md` **H-007** ("Proxy-based TLS capture is sufficient") is materially
-**narrowed, not resolved**: proxy-based capture is now shown insufficient for MCC's *sign-in phase*,
-because MCC fails to authenticate through an explicit proxy even when nothing is decrypted. It is
-**not** rejected — whether a session that signs in *without* a proxy survives one being enabled
-afterwards is untested, and that is the obvious next experiment. No other hypothesis changes.
+**narrowed, not resolved**: in both tested explicit-proxy configurations, MCC's sign-in failed while
+nothing was decrypted, so proxy-based capture did not work for the *sign-in phase* in either test.
+This does not prove that every possible proxy method fails during sign-in. It is **not** rejected —
+whether a session that signs in *without* a proxy survives one being enabled afterwards is untested,
+and that is the obvious next experiment. No other hypothesis changes.
 
 ## Interpretation boundary
 

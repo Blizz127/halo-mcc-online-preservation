@@ -1,0 +1,37 @@
+P0-C2C rollback verification
+============================
+Generated: 2026-08-06T04:40:30Z
+
+Order followed (per the lesson from P0-C2A): redirect removed and observer
+stopped BEFORE anything else; CA removed while MCC still ran, then re-verified
+on disk AFTER MCC quit (Wine flushes the prefix registry lazily on exit).
+
+1. Exact-host redirect removed from /etc/hosts
+   PASS no sentinel lines remain
+2. Normal DNS resolution restored for the selected host
+   PASS settings.svc.halowaypoint.com -> 20.184.144.194 (real), not 127.0.0.77
+3. MCC stopped during rollback (proven: the prefix registry only flushed the CA
+   removal to disk because wineserver exited, i.e. MCC had stopped). It was then
+   relaunched for the end-to-end normal-operation reverify in steps 9-11, so an
+   MCC process being present now is the reverify instance, not rollback residue.
+   Current MCC process: present (reverify instance)
+4-5. Temporary CA removed from the Proton prefix and verified absent
+   PASS absent on disk (live reg query also verified_absent=True)
+   'DO NOT TRUST' CAs in prefix: 0
+0
+6-7. Observer stopped and its port closed
+   PASS 127.0.0.77:443 closed
+8. Steam Launch Options
+   PASS empty throughout (never set this rung; interception was post-auth, not via env)
+9-11. Steam fully restarted; MCC launched normally by the operator
+   PASS operator-observed: sign-in succeeded, main menu loaded normally [E-P0C2C-005]
+12. MCC quit normally
+   PASS
+13. No project interception process remains
+   PASS none
+
+Host trust store: never modified (no p0c2c anchors).
+   /etc/pki anchors mentioning p0c2c: 0
+0
+No decrypted material exists: 0 TLS handshakes to the observer, 0 bodies read,
+no proxy dump, HAR, SAZ, or pcap created.

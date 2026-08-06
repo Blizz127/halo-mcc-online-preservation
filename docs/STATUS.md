@@ -54,9 +54,12 @@ P0 may complete only when:
    `tools/capture/linux/`); the observed topology is summarized in
    `docs/CLIENT_BOOTSTRAP_TOPOLOGY.md`. **Decrypted-HTTPS visibility is still not validated**, and
    this item remains open: **P0-C2A** established that MCC honours an explicit proxy and mapped the
-   governing certificate stores (`evidence/p0c2a_https_visibility/`), but **P0-C2B** then found MCC
-   will **not complete Xbox Live sign-in through a proxy even with zero decryption**
-   (`evidence/p0c2b_title_service_capture/`, `docs/TITLE_SERVICE_CAPTURE.md`). No MCC title-service
+   governing certificate stores (`evidence/p0c2a_https_visibility/`), but in **P0-C2B** both tested
+   explicit-proxy configurations **coincided with Xbox sign-in failure despite successful blind
+   tunneling** (`evidence/p0c2b_title_service_capture/`, `docs/TITLE_SERVICE_CAPTURE.md`). **P0-C2C** then
+   confirmed identity signs in normally with no proxy, but a post-boot single-host redirect did not
+   intercept the settings service because MCC reuses a boot-time connection
+   (`evidence/p0c2c_post_auth_interception/`, `docs/POST_AUTH_INTERCEPTION.md`). No MCC title-service
    exchange has been captured, and MCC certificate acceptance/pinning remains unresolved.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.

@@ -1,0 +1,12 @@
+{
+  "captured": false,
+  "reason": "MCC never connected to the observer (connection reuse), so no request was observed.",
+  "method": null,
+  "normalized_path": null,
+  "query_parameter_names": [],
+  "request_header_names": [],
+  "request_body_length": null,
+  "response_status": null,
+  "response_content_type": null,
+  "response_body_length": null
+}

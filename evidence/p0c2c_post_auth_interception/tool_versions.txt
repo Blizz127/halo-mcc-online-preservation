@@ -1,0 +1,27 @@
+P0-C2C tool and host versions
+=============================
+
+Tooling (project-owned; nothing new installed for this rung)
+-----------------------------------------------------------
+  tools/interception/linux/host_redirect.py    NEW: exact-host /etc/hosts redirect,
+                                                wildcard/suffix/identity rejection, scope verify
+  tools/interception/linux/local_ca.py         extended: --constrain-to-host issues a leaf for
+                                                ONE real host, CA name-constrained to exactly it,
+                                                refuses any excluded identity host
+  tools/interception/linux/wine_trust.py       reused: prefix Root-store install/remove/verify
+  tools/interception/linux/tls_observer.py     reused: records handshake verdict, no bodies
+  tools/interception/linux/exclusions.py       reused: hard-exclusion denylist
+
+Privileged commands were shown to the operator for manual execution.
+No sudo password was requested, received, stored, or passed.
+
+Versions
+--------
+  openssl        OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)
+  python3        Python 3.14.6
+  cryptography   50.0.0
+  wine           wine-11.0
+  proton         1785137693 experimental-11.0-20260724c
+  nsswitch       hosts: files myhostname mdns4_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] dns
+  os             Bazzite
+  kernel         7.1.5-ogc5.1.fc44.x86_64

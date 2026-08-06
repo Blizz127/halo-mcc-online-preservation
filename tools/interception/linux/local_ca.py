@@ -42,8 +42,25 @@ def _write_private(path: Path, data: bytes) -> None:
 
 
 def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VALIDITY_DAYS,
-             name_constraints: bool = True) -> dict:
-    """Create ca.crt/ca.key and server.crt/server.key. Returns metadata only."""
+             name_constraints: bool = True, constrain_to_host: str | None = None) -> dict:
+    """Create ca.crt/ca.key and server.crt/server.key. Returns metadata only.
+
+    `constrain_to_host` issues a leaf for ONE real hostname and name-constrains
+    the CA to exactly that host — so even a forgotten, still-installed CA can
+    vouch for nothing but that single name. It refuses any host on the exclusion
+    denylist, so an identity or Xbox-auth name can never be minted. No IP SAN is
+    added in this mode: the client reaches the observer by name (via a hosts
+    redirect), so SNI matches the DNS SAN and the P0-C2A bare-IP rejection does
+    not apply.
+    """
+    if constrain_to_host is not None:
+        # Late import keeps local_ca usable standalone in the Stage A test path.
+        from exclusions import is_excluded
+        target = constrain_to_host.strip().lower().rstrip(".")
+        if is_excluded(target):
+            raise ValueError(f"refusing: {target} is on the exclusion denylist and may never be minted")
+        hostname = target
+
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir.chmod(0o700)
@@ -86,7 +103,15 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False
         )
     )
-    if name_constraints:
+    if constrain_to_host is not None:
+        # Constrain the CA to exactly the one real host it exists to observe.
+        constrained_to = [hostname]
+        ca_builder = ca_builder.add_extension(
+            x509.NameConstraints(permitted_subtrees=[x509.DNSName(hostname)], excluded_subtrees=None),
+            critical=True,
+        )
+    elif name_constraints:
+        constrained_to = [TEST_DOMAIN, "127.0.0.0/8"]
         ca_builder = ca_builder.add_extension(
             x509.NameConstraints(
                 permitted_subtrees=[
@@ -97,8 +122,15 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
             ),
             critical=True,
         )
+    else:
+        constrained_to = None
     ca_cert = ca_builder.sign(ca_key, hashes.SHA256())
 
+    # For a real host the leaf carries the DNS SAN only (no IP SAN): the client
+    # presents that name via SNI, so no bare-IP validation is involved.
+    leaf_sans = [x509.DNSName(hostname)]
+    if constrain_to_host is None:
+        leaf_sans.append(x509.IPAddress(ipaddress.ip_address("127.0.0.1")))
     leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     leaf_cert = (
         x509.CertificateBuilder()
@@ -109,13 +141,7 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         .not_valid_before(now - datetime.timedelta(minutes=5))
         .not_valid_after(not_after)
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-        .add_extension(
-            x509.SubjectAlternativeName([
-                x509.DNSName(hostname),
-                x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
-            ]),
-            critical=False,
-        )
+        .add_extension(x509.SubjectAlternativeName(leaf_sans), critical=False)
         .add_extension(x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()), critical=False)
         .add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False
@@ -139,7 +165,7 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         "ca_not_after": not_after.isoformat(),
         "leaf_hostname": hostname,
         "leaf_sha256_fingerprint": _fingerprint(leaf_cert),
-        "name_constrained_to": [TEST_DOMAIN, "127.0.0.0/8"] if name_constraints else None,
+        "name_constrained_to": constrained_to,
         "key_files_written": ["ca.key", "server.key"],
         "key_files_committed": False,
     }
@@ -155,13 +181,18 @@ if __name__ == "__main__":
     parser.add_argument("--days", type=int, default=DEFAULT_VALIDITY_DAYS)
     parser.add_argument("--no-name-constraints", action="store_true",
                         help="omit the critical NameConstraints extension (diagnostic only)")
+    parser.add_argument("--constrain-to-host", default=None,
+                        help="issue a leaf for ONE real host, CA name-constrained to exactly it "
+                             "(refuses any excluded identity/auth host)")
     args = parser.parse_args()
 
-    # Reserved test domains (RFC 6761) plus "localhost", which is loopback-only
-    # and cannot be pointed at a real service.
-    if not (args.hostname.endswith(".test") or args.hostname.endswith(".invalid")
-            or args.hostname == "localhost"):
-        raise SystemExit("refusing: Stage A certificates may only be issued for reserved test domains")
+    if args.constrain_to_host is None:
+        # Reserved test domains (RFC 6761) plus "localhost", which is loopback-only
+        # and cannot be pointed at a real service.
+        if not (args.hostname.endswith(".test") or args.hostname.endswith(".invalid")
+                or args.hostname == "localhost"):
+            raise SystemExit("refusing: without --constrain-to-host, only reserved test domains are allowed")
 
     print(json.dumps(generate(args.out_dir, args.hostname, args.days,
+                              constrain_to_host=args.constrain_to_host,
                               name_constraints=not args.no_name_constraints), indent=2))

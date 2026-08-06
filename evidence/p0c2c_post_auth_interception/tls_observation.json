@@ -1,0 +1,20 @@
+{
+  "observer_bind": "127.0.0.77:443",
+  "observer_mode": "stage_d (bounded 501 response; never imitates the real service)",
+  "temporary_ca_sha256": "e6:0e:17:2d:52:37:bb:ab:0b:c3:21:68:2d:73:f6:d6:62:e3:b7:e9:4f:14:09:96:00:21:8d:e1:78:1c:92:94",
+  "temporary_leaf_sha256": "c6:08:d8:ca:88:19:89:f7:35:cf:b7:9d:8e:70:03:3a:af:2a:05:20:37:d4:95:d0:06:c8:be:ec:9a:4d:31:2b",
+  "temporary_ca_sha1_thumbprint": "64548D5A11AB5B9DECE2CB5D4215AA577F6FC104",
+  "ca_name_constrained_to": [
+    "settings.svc.halowaypoint.com"
+  ],
+  "ca_installed_into": "MCC Proton prefix Root store only (not the host trust store)",
+  "observer_observations": 0,
+  "mcc_contacted_observer": false,
+  "tls_handshake_attempts": 0,
+  "certificate_accepted": null,
+  "certificate_rejected": null,
+  "pinning": "unresolved",
+  "reason_no_contact": "connection_reuse",
+  "reason_detail": "MCC held a persistent TLS connection to the real settings service (20.184.175.6:443), established during boot BEFORE the redirect, owned by the game process (MAIN_THREAD). It reused that connection and never re-resolved the hostname, so the /etc/hosts override was never consulted and the observer was never contacted. No new connection to the settings /16 appeared during a 25s observation window or the menu-navigation trigger.",
+  "mechanism_2_considered": "exact-destination DNAT would only affect NEW connections; a reused ESTABLISHED connection would not be caught without forcing a reconnect, which is invasive and out of scope. Not attempted."
+}
