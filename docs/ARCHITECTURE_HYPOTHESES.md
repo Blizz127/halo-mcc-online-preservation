@@ -17,6 +17,23 @@ Every material claim must be tracked here before it becomes architecture.
 | H-011 | MCC client-to-UDS configuration uses an ICE/STUN-negotiated UDP path | Unproven | Two-client capture showing STUN/ICE candidate exchange preceding UDS configuration | Determines transport implementation scale; narrower restatement of H-005 |
 | H-012 | MCC officially supports launching on PC with Easy Anti-Cheat disabled, for mods and a limited subset of online services | Unproven | Cited official support or vendor documentation banked with an evidence ID, plus retail confirmation of the launch mode | Determines the lawful, sanctioned launch mode for all testing |
 
+## P0-C1 passive-topology evidence (no state changes)
+
+`evidence/p0c1_passive_connection_topology/` banked connection-metadata evidence touching several
+hypotheses. **No hypothesis state changed**, because passive metadata shows *that* an endpoint was
+contacted, never *what it does* — and every hypothesis below turns on behavior, authority, or
+format that TLS made unobservable. The observations are recorded here so a later rung does not
+have to rediscover them, and so nobody mistakes "endpoint exists" for "hypothesis supported".
+
+| ID | Relevant P0-C1 observation | Why the state does not change |
+|---|---|---|
+| H-002 | `settings.svc.halowaypoint.com` exists, is contacted by the game process at launch, and resolves to a named settings dispatcher (`E-P0C1-001`) | A suggestive name is not a manifest. No response was observed, so whether it is machine-readable or authoritative is untested |
+| H-003 | `xsts.auth.xboxlive.com` is contacted ~0.2s after `login.live.com` (`E-P0C1-003`) | Ordering only. No token, header, or payload was observed; the token *format* question is untouched |
+| H-004 | `sessiondirectory.xboxlive.com` (MPSD) is contacted by the MCC game process during menu-only activity (`E-P0C1-005`) | Contact is not authority. Whether MPSD is authoritative *for every target mode* needs session-lifecycle evidence this rung did not gather |
+| H-005 / H-011 | Halo-operated TURN relays (`COTURN.*.halowaypoint.com`, `turn-mcc*.trafficmanager.net`) resolved and probed on UDP/3478 (`E-P0C1-007`) | Relay endpoints existing and receiving 32 packets is a *necessary condition* for an ICE/TURN path, not a demonstration of one. No candidate exchange or session was observed |
+| H-008 | QoS probing on UDP/3075 across 15 Azure regions during launch and menus (`E-P0C1-006`) | Consistent with regional server selection, but no allocation, assignment, or match was observed. Attribution here is by destination address, not process ownership |
+| H-012 | Anti-cheat module CDN contacted by the launcher (`E-P0C1-008`), while `E-P0B1A-004` recorded no EAC process or module | Both facts stand; neither resolves the other. Module delivery is not proof of enforcement |
+
 ## Provenance of H-008 through H-012
 
 H-008 through H-012 were previously recorded in `docs/STATUS.md` as **accepted facts**. None

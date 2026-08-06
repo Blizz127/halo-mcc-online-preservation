@@ -11,6 +11,17 @@ Record storefront, app/build identifiers, Steam depot manifests where lawfully a
 ### P0-C: Capture-path validation
 Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configuration. Escalate to DNS or transparent interception only when proxy capture is proven insufficient.
 
+- **P0-C1 — Bazzite client bootstrap and passive connection topology.** *Complete* for the
+  Linux/Proton platform. Passive metadata only: which domains the client contacts, in what order,
+  over which protocol, owned by which process. Tooling in `tools/capture/linux/`, evidence in
+  `evidence/p0c1_passive_connection_topology/`, summary in `docs/CLIENT_BOOTSTRAP_TOPOLOGY.md`.
+  Established a distinct `*.svc.halowaypoint.com` title-service layer, an identity-before-title
+  bootstrap order, MPSD contact from the game process, UDP/3075 QoS probing across 15 Azure
+  regions, and UDP/3478 traffic to Halo-operated TURN relays. Promoted no hypothesis.
+- **P0-C2 — Controlled HTTPS visibility and redirection-path validation.** *Not started, requires
+  its own authorization.* Tests whether the connections P0-C1 mapped can be observed or redirected
+  without breaking Microsoft/Xbox sign-in.
+
 ### P0-D: Cold-boot service inventory
 Capture DNS, TLS SNI, HTTP(S), WebSocket, AMQP if present, STUN/TURN/ICE, and UDP flows from a fresh profile. Identify manifests before enumerating endpoints manually.
 

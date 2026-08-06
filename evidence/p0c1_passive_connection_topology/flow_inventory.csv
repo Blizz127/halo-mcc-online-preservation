@@ -1,0 +1,74 @@
+protocol,peer_address,peer_port,hostnames,classification,process_roles,process_names,scenarios,samples,first_seen_offset_s,duration_s
+tcp,127.0.0.1,45429,,Unknown,steam_client,steamwebhelper,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,127.0.0.1,42590,,Unknown,steam_client,steam,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,127.0.0.1,57343,,Unknown,mcc_game|steam_client,GameThread|MAIN_THREAD|MCC-Win64-Shipp|gameoverlayui|steamwebhelper,C1|C2|C2b|C5|C6,9186,0.0,1902.2
+tcp,127.0.0.1,43966,,Unknown,steam_client,steam,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,127.0.0.1,39895,,Unknown,steam_client,steamwebhelper,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,127.0.0.1,51088,,Unknown,steam_client,gameoverlayui|steam,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,162.254.194.56,443,cmp1-dfw2.steamserver.net,Confirmed Steam,steam_client,steam,C1|C2,480,0.0,260.8
+udp,<PRIVATE_HOST_1>,67,,Unknown,unattributed,none,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,<PRIVATE_HOST_2>,8009,,Unknown,steam_client,steamwebhelper,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,<PRIVATE_HOST_3>,8009,,Unknown,steam_client,steamwebhelper,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,<PRIVATE_HOST_4>,27036,304a55ecddc14a3584503a35729623bd,Unknown,steam_client,steam,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,<PRIVATE_HOST_5>,8009,,Unknown,steam_client,steamwebhelper,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,192.200.0.111,443,controlplane.tailscale.com,Unknown,unattributed,none,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,192.73.240.121,443,derp10c.tailscale.com,Unknown,unattributed,none,C1|C2|C2b|C5|C6,1454,0.0,1521.1
+tcp,199.165.136.101,443,,Unknown,unattributed,none,C1|C2|C2b|C5|C6,5880,0.0,1902.2
+tcp,209.177.158.15,443,derp12e.tailscale.com,Unknown,unattributed,none,C1|C2|C2b|C5|C6,5328,0.0,1902.2
+tcp,162.159.192.1,443,api.cloudflareclient.com,Unknown,unattributed,none,C2|C2b|C5|C6,844,104.8,1329.3
+tcp,45.86.221.158,22000,,Unknown,unattributed,none,C2|C2b|C6,4,238.8,1211.8
+tcp,104.18.124.108,443,api.epicgames.dev|api.epicgames.dev.cdn.cloudflare.net,Likely classification requiring verification,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5|C6,4202,1002.5,899.7
+tcp,127.0.0.1,58864,,Unknown,steam_client,steam,C5|C6,1592,1002.5,397.6
+tcp,127.0.0.1,58860,,Unknown,steam_client,gameoverlayui|steam,C5|C6,1592,1002.5,397.6
+tcp,130.213.187.173,443,s3p-ingestion-1-eus2-dispatcher-production.eastus2.cloudapp.azure.com|telemetry.svc.halowaypoint.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5|C6,2382,1002.5,899.7
+tcp,162.254.194.56,27018,cmp1-dfw2.steamserver.net,Confirmed Steam,steam_client,steam,C2b|C5|C6,5400,1002.5,899.7
+tcp,184.29.31.209,443,,Unknown,steam_client,steamwebhelper,C2b|C5|C6,3081,1002.5,513.1
+tcp,<PRIVATE_HOST_6>,56700,,Unknown,steam_client,steamwebhelper,C2b|C5|C6,5400,1002.5,899.7
+tcp,192.73.248.83,443,derp9e.tailscale.com,Unknown,unattributed,none,C5,192,1002.5,95.5
+tcp,199.46.35.121,443,rta.xboxlive.com,Confirmed Xbox platform,proton_wine,MAIN_THREAD|wineserver,C5|C6,1578,1002.5,394.1
+tcp,20.184.175.4,443,vortex.data.microsoft.com,CDN/telemetry,proton_wine,MAIN_THREAD|wineserver,C5|C6,1578,1002.5,394.1
+tcp,40.90.8.111,443,userpresence.xboxlive.com|userpresence.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5|C6,1718,1002.5,796.7
+tcp,48.223.216.76,443,notification.svc.halowaypoint.com|s3p-notification-eus-dispatcher-production.eastus.cloudapp.azure.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5|C6,2453,1002.5,899.7
+tcp,::1,48480,,Unknown,unattributed,none,C5|C6,1578,1002.5,394.1
+tcp,104.18.125.108,443,api.epicgames.dev|api.epicgames.dev.cdn.cloudflare.net,Likely classification requiring verification,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5|C6,1298,1160.0,742.2
+tcp,150.171.110.5,443,mcc-production.azurefd.net|mr-azurefd.tm-azurefd.net,Confirmed MCC/Halo title service,proton_wine,MAIN_THREAD|wineserver,C5,76,1174.5,37.5
+tcp,150.171.110.179,443,ee38.playfabapi.com|mcc-production.azurefd.net|mr-azurefd.tm-azurefd.net|mr-b01.tm-azurefd.net,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5,267,1175.0,389.6
+tcp,20.84.129.127,443,userstats.xboxlive.com|userstats.xboxlive.com.akadns.net,Confirmed Xbox platform,proton_wine,MAIN_THREAD|wineserver,C5,1676,1175.0,122.0
+tcp,23.99.199.208,443,sessiondirectory.xboxlive.com|sessiondirectory.xboxlive.com.akadns.net,Confirmed Xbox platform,proton_wine,MAIN_THREAD|wineserver,C5,165,1175.0,82.0
+tcp,40.90.8.9,443,profile.xboxlive.com|profile.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5,172,1181.5,368.1
+tcp,150.171.110.6,443,EE38.playfabapi.com|ee38.playfabapi.com|mcc-production.azurefd.net|mr-azurefd.tm-azurefd.net|mr-b01.tm-azurefd.net,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b|C5,231,1182.5,320.6
+udp,<PRIVATE_HOST_1>,53,,Unknown,unattributed,none,C2b|C5,2,1182.5,318.1
+tcp,52.143.79.188,443,leaderboards.xboxlive.com|leaderboards.xboxlive.com.akadns.net,Confirmed Xbox platform,proton_wine,MAIN_THREAD|wineserver,C5,62,1221.5,30.5
+tcp,172.212.71.217,443,s3p-settings-eus-dispatcher-production.eastus.cloudapp.azure.com|settings.svc.halowaypoint.com,Confirmed MCC/Halo title service,proton_wine,MAIN_THREAD|wineserver,C6,63,1336.1,31.0
+tcp,23.194.74.106,443,api.steampowered.com,Confirmed Steam,steam_client,steam,C2b|C6,122,1399.1,30.0
+tcp,57.150.191.225,443,blob.avc09prdstrz05a.trafficmanager.net|steamclouduseast2.blob.core.windows.net,CDN/telemetry,steam_client,steam,C2b|C6,122,1399.6,30.0
+tcp,184.86.165.128,443,api.steampowered.com,Confirmed Steam,steam_client,steam,C2b,76,1457.6,37.5
+tcp,127.0.0.1,57424,,Unknown,mcc_launcher|proton_wine,mcclauncher.exe|wineserver,C2b,4,1469.6,1.5
+tcp,127.0.0.1,36561,,Unknown,mcc_launcher|proton_wine,mcclauncher.exe|wineserver,C2b,4,1469.6,1.5
+tcp,13.225.61.24,443,modules-cdn.eac-prod.on.epicgames.com,Likely classification requiring verification,mcc_launcher|proton_wine,mcclauncher.exe|wineserver,C2b,4,1469.6,1.5
+udp,5.78.62.36,123,,Unknown,unattributed,none,C2b,1,1469.6,0.0
+tcp,127.0.0.1,55020,,Unknown,steam_client,gameoverlayui|steam,C2b,859,1473.1,429.1
+tcp,127.0.0.1,45608,,Unknown,steam_client,steam,C2b,855,1475.1,427.1
+tcp,::1,49940,,Unknown,unattributed,none,C2b,852,1476.6,425.6
+tcp,::1,631,,Unknown,mcc_game,GameThread|MAIN_THREAD|MCC-Win64-Shipp,C2b,852,1476.6,425.6
+tcp,40.122.46.48,443,title.mgt.xboxlive.com|title.mgt.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,101,1479.6,50.0
+tcp,140.211.169.196,80,fedoraproject.org,Unknown,unattributed,none,C2b,1,1482.6,0.0
+tcp,40.126.29.8,443,login.live.com|www.tm.v4.a.prd.aadg.akadns.net,Confirmed Microsoft identity,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,63,1498.6,31.0
+tcp,20.201.200.49,443,xsts.auth.xboxlive.com|xsts.auth.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,62,1499.1,30.5
+tcp,104.46.162.230,443,onedscolprdaus51.australiasoutheast.cloudapp.azure.com|vortex.data.microsoft.com,CDN/telemetry,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,81,1499.6,40.0
+tcp,150.171.110.1,443,EE38.playfabapi.com|ee38.playfabapi.com|mcc-production.azurefd.net|mr-b01.tm-azurefd.net,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,852,1499.6,50.0
+tcp,173.223.0.10,443,peoplehub.xboxlive.com|user-att-107-135-96-0.e87.b.akamaiedge.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,71,1499.6,35.0
+tcp,199.46.35.123,443,rta.xboxlive.com|rta.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,806,1499.6,402.6
+tcp,20.109.157.180,443,achievements.xboxlive.com|achievements.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,71,1499.6,35.0
+tcp,20.184.144.194,443,s3p-settings-wus-dispatcher-production.westus.cloudapp.azure.com|settings.svc.halowaypoint.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,71,1499.6,35.0
+tcp,20.201.192.51,443,notify.xboxlive.com|notify.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,122,1499.6,30.0
+tcp,20.69.141.254,443,userstats.xboxlive.com|userstats.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,894,1499.6,35.0
+tcp,52.252.248.163,443,sessiondirectory.xboxlive.com|sessiondirectory.xboxlive.com.akadns.net,Confirmed Xbox platform,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,209,1499.6,35.0
+tcp,23.220.251.83,443,gamecms-hacs.svc.halowaypoint.com|user-att-107-135-96-0.a925.dscr.akamai.net,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,1384,1500.1,34.5
+tcp,23.220.251.97,443,gamecms-hacs.svc.halowaypoint.com|user-att-107-135-96-0.a925.dscr.akamai.net,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,761,1500.1,34.5
+tcp,68.220.133.134,443,halostats.svc.halowaypoint.com|s3p-halostats-dispatcher-production.eastus2.cloudapp.azure.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,70,1500.1,34.5
+udp,127.0.0.53,53,,Unknown,mcc_game,MAIN_THREAD,C2b,1,1500.6,0.0
+tcp,172.185.107.136,443,WestUs.tts.speech.microsoft.com|istio-ingress-speech2-ame10-usw.westus.cloudapp.azure.com,Unknown,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,66,1502.1,32.5
+tcp,4.150.223.106,443,onedscolprdcus52.centralus.cloudapp.azure.com|vortex.data.microsoft.com,CDN/telemetry,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,231,1509.6,115.0
+tcp,20.84.23.166,443,entitlements.svc.halowaypoint.com|s3l-entitlements-eus-dispatcher-production.eastus.cloudapp.azure.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,70,1515.1,34.5
+tcp,68.220.132.149,443,banprocessor.svc.halowaypoint.com|s3p-banprocessor-eus2-dispatcher-production.eastus2.cloudapp.azure.com,Confirmed MCC/Halo title service,mcc_game|proton_wine,MAIN_THREAD|wineserver,C2b,70,1515.1,34.5

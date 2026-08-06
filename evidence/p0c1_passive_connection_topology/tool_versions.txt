@@ -1,0 +1,24 @@
+P0-C1 tool and host versions
+============================
+
+Collected with: tools/capture/linux/capture_env.py
+
+Tool versions
+-------------
+  tcpdump      tcpdump version 4.99.6
+  dumpcap      NOT INSTALLED
+  tshark       NOT INSTALLED
+  ss           ss utility, iproute2-6.17.0
+  lsof         lsof version information:
+  ip           ip utility, iproute2-6.17.0, libbpf 1.6.3
+  resolvectl   systemd 259 (259.8-1.fc44)
+  python3      Python 3.14.6
+
+Capture readiness
+-----------------
+  unprivileged capture works : False
+  detail                     : requires CAP_NET_RAW / root
+  /usr writable (ostree)     : False
+
+Default route interface: wlan0
+Capture interface used : any (covers both the default route and the VPN-routed DNS path)

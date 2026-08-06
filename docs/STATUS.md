@@ -49,7 +49,11 @@ P0 may complete only when:
    interactively confirmed** (`evidence/p0b1_bazzite_proton_build_bank/`,
    `evidence/p0b1a_interactive_launch/`; summarized in `docs/RETAIL_BUILD_BANK.md`). **Native
    Windows side (P0-B2) not yet banked** — this item is not complete until both platforms are.
-2. Capture tooling is validated against visible ground-truth traffic.
+2. Capture tooling is validated against visible ground-truth traffic. **Passive metadata capture
+   built and exercised** (`evidence/p0c1_passive_connection_topology/`, tooling in
+   `tools/capture/linux/`); the observed topology is summarized in
+   `docs/CLIENT_BOOTSTRAP_TOPOLOGY.md`. **Decrypted-HTTPS visibility is not validated** — that is
+   P0-C2 and is unstarted, so this item is not complete.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

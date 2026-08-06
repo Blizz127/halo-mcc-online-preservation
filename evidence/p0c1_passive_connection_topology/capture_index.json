@@ -1,0 +1,79 @@
+{
+  "rung": "P0-C1",
+  "method": "passive metadata only; no decryption, proxy, DNS redirection, certificate install, or client modification",
+  "raw_capture": {
+    "sanitized_path": "<LOCAL_SCRATCH>/p0c1/p0c1_full.pcap",
+    "committed": false,
+    "reason_not_committed": "raw capture of a whole host; docs/EVIDENCE_POLICY.md forbids committing raw PCAP",
+    "sha256": "6dc22caa14d93d8094ff7feadfc29413bb35be6ec32771d0fdef4112282c277b",
+    "size_bytes": 867201307,
+    "capture_command_tool": "tools/capture/linux/run_capture.sh",
+    "snaplen_bytes": 400,
+    "snaplen_effect": "payload bodies truncated at capture time; only headers and TLS handshake metadata fit",
+    "interface": "any"
+  },
+  "collectors": {
+    "dns": "tools/capture/linux/dns_monitor.py (resolvectl monitor, timestamped on arrival)",
+    "sockets": "tools/capture/linux/socket_poller.py (ss -tunpH, 0.5s interval)",
+    "processes": "ps -eo pid,comm,args timeline (argv-based role attribution)",
+    "pcap": "tools/capture/linux/pcap_parse.py (pure-Python; SLL2, DNS, TLS SNI)"
+  },
+  "totals": {
+    "stats": {
+      "flows_total": 586,
+      "flows_attributed_to_target": 213,
+      "flows_excluded_other_processes": 323,
+      "flows_unattributed": 50,
+      "dns_transactions": 591,
+      "dns_names_total": 101
+    },
+    "pcap": {
+      "packets": 6081354,
+      "sni_observed": 391,
+      "dns_questions": 4163,
+      "truncated_packets": 826838
+    }
+  },
+  "scenarios": [
+    {
+      "id": "C1",
+      "title": "Baseline idle (Steam running, MCC closed)",
+      "start_epoch": "2026-08-06T01:49:04Z",
+      "end_epoch": "2026-08-06T01:50:04Z",
+      "dns_log": "c1_dns.log",
+      "status": "captured"
+    },
+    {
+      "id": "C2",
+      "title": "MCC cold launch (first attempt)",
+      "start_epoch": "2026-08-06T01:50:26Z",
+      "end_epoch": "2026-08-06T01:53:27Z",
+      "dns_log": "c2_dns.log",
+      "status": "void: fixed 180s window expired before the operator pressed Play; no launch occurred inside it"
+    },
+    {
+      "id": "C2b",
+      "title": "MCC cold launch (clean, continuous collectors)",
+      "start_epoch": "2026-08-06T02:12:52Z",
+      "end_epoch": "2026-08-06T02:14:24Z",
+      "dns_log": "cont_dns.log",
+      "status": "captured"
+    },
+    {
+      "id": "C5",
+      "title": "Halo: Reach and online-menu navigation",
+      "start_epoch": "2026-08-06T02:06:27Z",
+      "end_epoch": "2026-08-06T02:09:58Z",
+      "dns_log": "cont_dns.log",
+      "status": "captured"
+    },
+    {
+      "id": "C6",
+      "title": "Normal shutdown",
+      "start_epoch": "2026-08-06T02:10:50Z",
+      "end_epoch": "2026-08-06T02:12:31Z",
+      "dns_log": "cont_dns.log",
+      "status": "captured"
+    }
+  ]
+}
