@@ -2,7 +2,7 @@
 
 ## Repository path
 
-`/home/blizz/dev/halo-mcc-online-preservation`
+`<REPOSITORY_ROOT>`
 
 ## Branch
 
