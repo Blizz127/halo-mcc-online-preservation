@@ -199,11 +199,15 @@ def test_blind_relay_records_upstream_connect_failure_without_worker_escape(
     assert result["state"].connections[0]["error_class"] == "ConnectionRefusedError"
 
 
-def _write_control(path: Path, tool: str, kind: str, pid: int, run_id: str = "audit-run") -> None:
-    path.write_text(json.dumps({
+def _write_control(path: Path, tool: str, kind: str, pid: int, run_id: str = "audit-run",
+                   extra: dict | None = None) -> None:
+    document = {
         "format": prelaunch_relay.CONTROL_FORMAT, "tool": tool, "kind": kind,
         "pid": pid, "run_id": run_id,
-    }) + "\n", encoding="utf-8")
+    }
+    if extra:
+        document.update(extra)
+    path.write_text(json.dumps(document) + "\n", encoding="utf-8")
 
 
 def test_relay_removes_only_recognized_stale_controls(tmp_path: Path) -> None:
@@ -1671,6 +1675,7 @@ def test_observer_accepts_the_recommended_live_runtime(tmp_path: Path) -> None:
     cert_dir = tmp_path / "certs"
     local_ca.generate(cert_dir, hostname="p0c2a.test", days=1)
     port, ready = _free_port(), threading.Event()
+    pid_file, ready_file = tmp_path / "observer.pid", tmp_path / "observer.ready"
     result: dict = {}
 
     def server() -> None:
@@ -1678,12 +1683,30 @@ def test_observer_accepts_the_recommended_live_runtime(tmp_path: Path) -> None:
             cert_dir / "server.crt", cert_dir / "server.key", port, "127.0.0.1",
             max_connections=1, total_timeout=tls_observer.RECOMMENDED_LIVE_SECONDS,
             ready_event=ready, required_sni="p0c2a.test",
+            pid_file=pid_file, ready_file=ready_file,
         )
 
     thread = threading.Thread(target=server)
     thread.start()
     # Reaching ready proves the 240s bound was accepted and the listener bound.
     assert ready.wait(5)
+    _, pid_state = prelaunch_relay._read_control_identity(pid_file)
+    _, ready_state = prelaunch_relay._read_control_identity(ready_file)
+    for field in (
+        "run_started_monotonic_seconds", "run_started_wall_time",
+        "configured_timeout_seconds", "deadline_monotonic_seconds",
+    ):
+        assert pid_state[field] == ready_state[field]
+    assert ready_state["run_id"] == pid_state["run_id"]
+    assert ready_state["ready"] is True
+    gate = tls_observer.evaluate_launch_window(
+        pid_file, ready_file, "127.0.0.1", port,
+        pid_matches=lambda pid, tool: pid == os.getpid() and tool == tls_observer.TLS_TOOL,
+    )
+    assert gate["observer_alive"] is True
+    assert gate["listener_ready"] is True
+    assert gate["run_identity_valid"] is True
+    assert gate["safe_to_launch"] is True
     # One connection then retires the run at its cap, so the test does not wait
     # out the full recommended runtime or leave a listener behind.
     context = ssl.create_default_context(cafile=str(cert_dir / "ca.crt"))
@@ -1789,3 +1812,196 @@ def test_observer_run_summary_carries_no_payload_or_peer_address(tmp_path: Path)
     text = log.read_text(encoding="utf-8")
     assert "TOPSECRET" not in text and "SECRET-VALUE" not in text
     assert "127.0.0.1" not in text
+
+
+# --------------------------------------------------------------------------
+# P0-C2D1-R1: remaining-runtime launch gate and direct-baseline contract
+# --------------------------------------------------------------------------
+
+
+def _observer_gate_controls(tmp_path: Path, *, pid: int = 4242,
+                            ready_pid: int | None = None,
+                            pid_run_id: str = "r1-run",
+                            ready_run_id: str | None = None,
+                            timeout: float = 240.0,
+                            ready_timeout: float | None = None,
+                            deadline: float | None = None) -> tuple[Path, Path]:
+    start = 1000.0
+    deadline = start + timeout if deadline is None else deadline
+    runtime = {
+        "run_started_monotonic_seconds": start,
+        "run_started_wall_time": "2026-08-06T12:00:00+00:00",
+        "configured_timeout_seconds": timeout,
+        "deadline_monotonic_seconds": deadline,
+    }
+    pid_file, ready_file = tmp_path / "observer.pid", tmp_path / "observer.ready"
+    _write_control(pid_file, tls_observer.TLS_TOOL, "pid", pid, pid_run_id, runtime)
+    ready_runtime = dict(runtime)
+    if ready_timeout is not None:
+        ready_runtime["configured_timeout_seconds"] = ready_timeout
+    ready_runtime.update({
+        "ready": True,
+        "bind": prelaunch_relay.AUTHORIZED_BIND,
+        "port": prelaunch_relay.AUTHORIZED_PORT,
+    })
+    _write_control(
+        ready_file, tls_observer.TLS_TOOL, "ready",
+        pid if ready_pid is None else ready_pid,
+        pid_run_id if ready_run_id is None else ready_run_id,
+        ready_runtime,
+    )
+    return pid_file, ready_file
+
+
+def _launch_gate(tmp_path: Path, now: float, **control_overrides) -> dict:
+    pid_file, ready_file = _observer_gate_controls(tmp_path, **control_overrides)
+    return tls_observer.evaluate_launch_window(
+        pid_file, ready_file,
+        monotonic_now=lambda: now,
+        pid_matches=lambda _pid, _tool: True,
+        listener_owned=lambda _pid, _bind, _port: True,
+    )
+
+
+def test_launch_gate_allows_alive_observer_with_sufficient_remaining_time(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1089.0)
+    assert decision["remaining_seconds"] == 151.0
+    assert decision["safe_to_launch"] is True
+
+
+def test_launch_gate_allows_exact_minimum_remaining_time(tmp_path: Path) -> None:
+    assert tls_observer.MIN_LIVE_LAUNCH_REMAINING_SECONDS == 150.0
+    assert (
+        tls_observer.MIN_LIVE_LAUNCH_REMAINING_SECONDS
+        == 2 * tls_observer.OBSERVED_REDIRECT_VERIFY_TO_CONNECT_SECONDS
+    )
+    decision = _launch_gate(tmp_path, 1090.0)
+    assert decision["remaining_seconds"] == tls_observer.MIN_LIVE_LAUNCH_REMAINING_SECONDS
+    assert decision["safe_to_launch"] is True
+
+
+def test_launch_gate_blocks_one_second_below_minimum(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1091.0)
+    assert decision["remaining_seconds"] == 149.0
+    assert decision["failure_reasons"] == ["insufficient_remaining_runtime"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_observer_at_expiry(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1240.0)
+    assert decision["remaining_seconds"] == 0.0
+    assert "observer_expired" in decision["failure_reasons"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_pid_identity_mismatch(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1050.0, ready_pid=4243)
+    assert decision["run_identity_valid"] is False
+    assert decision["failure_reasons"] == ["malformed_control_state"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_ready_ownership_mismatch(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1050.0, ready_run_id="other-run")
+    assert decision["run_identity_valid"] is False
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_absent_listener(tmp_path: Path) -> None:
+    pid_file, ready_file = _observer_gate_controls(tmp_path)
+    decision = tls_observer.evaluate_launch_window(
+        pid_file, ready_file,
+        monotonic_now=lambda: 1050.0,
+        pid_matches=lambda _pid, _tool: True,
+        listener_owned=lambda _pid, _bind, _port: False,
+    )
+    assert decision["listener_ready"] is False
+    assert decision["failure_reasons"] == ["listener_not_ready"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_malformed_state(tmp_path: Path) -> None:
+    pid_file, ready_file = _observer_gate_controls(tmp_path)
+    ready_file.write_text("not-json\n", encoding="utf-8")
+    decision = tls_observer.evaluate_launch_window(
+        pid_file, ready_file, monotonic_now=lambda: 1050.0
+    )
+    assert decision["failure_reasons"] == ["malformed_control_state"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_preserves_negative_remaining_time_and_blocks(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1241.0)
+    assert decision["remaining_seconds"] == -1.0
+    assert "observer_expired" in decision["failure_reasons"]
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_blocks_inconsistent_configured_timeout(tmp_path: Path) -> None:
+    decision = _launch_gate(tmp_path, 1050.0, ready_timeout=239.0)
+    assert decision["runtime_metadata_valid"] is False
+    assert decision["safe_to_launch"] is False
+
+
+def test_launch_gate_cli_exits_nonzero_without_exposing_control_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pid_file, ready_file = _observer_gate_controls(tmp_path, ready_run_id="wrong-owner")
+    monkeypatch.setattr(sys, "argv", [
+        "tls_observer.py", "--check-launch-window",
+        "--pid-file", str(pid_file), "--ready-file", str(ready_file),
+    ])
+    assert tls_observer.main() == 2
+    output = capsys.readouterr().out
+    decision = json.loads(output)
+    assert decision["safe_to_launch"] is False
+    assert str(tmp_path) not in output
+
+
+def _valid_baseline(sign_in_mode: str = "cached") -> dict:
+    return {
+        "format": tls_observer.BASELINE_FORMAT,
+        "steam_launched_normally": True,
+        "mcc_launched_normally": True,
+        "sign_in_mode": sign_in_mode,
+        "identity_success": True,
+        "main_menu_success": True,
+        "certificate_or_service_error": False,
+        "clean_shutdown": True,
+    }
+
+
+def test_baseline_identity_failure_blocks() -> None:
+    baseline = _valid_baseline()
+    baseline["identity_success"] = False
+    assert tls_observer.evaluate_baseline(baseline)["safe_to_continue"] is False
+
+
+def test_baseline_main_menu_failure_blocks() -> None:
+    baseline = _valid_baseline()
+    baseline["main_menu_success"] = False
+    assert tls_observer.evaluate_baseline(baseline)["safe_to_continue"] is False
+
+
+def test_baseline_service_error_blocks() -> None:
+    baseline = _valid_baseline()
+    baseline["certificate_or_service_error"] = True
+    assert tls_observer.evaluate_baseline(baseline)["safe_to_continue"] is False
+
+
+def test_baseline_dirty_shutdown_blocks() -> None:
+    baseline = _valid_baseline()
+    baseline["clean_shutdown"] = False
+    assert tls_observer.evaluate_baseline(baseline)["safe_to_continue"] is False
+
+
+def test_valid_cached_baseline_passes() -> None:
+    decision = tls_observer.evaluate_baseline(_valid_baseline("cached"))
+    assert decision["contract_valid"] is True
+    assert decision["safe_to_continue"] is True
+
+
+def test_valid_interactive_baseline_passes() -> None:
+    decision = tls_observer.evaluate_baseline(_valid_baseline("interactive"))
+    assert decision["contract_valid"] is True
+    assert decision["safe_to_continue"] is True

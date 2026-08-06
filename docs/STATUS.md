@@ -86,8 +86,11 @@ P0 may complete only when:
    `E-P0C2D1-005`, `evidence/p0c2d1_tls_observation/`). This is not `D. OBSERVER NOT CONTACTED`
    and establishes no MCC TLS, SNI, ALPN, certificate-acceptance, or pinning verdict. Exact hosts
    rollback, prefix trust removal, certificate deletion, and a separate normal launch succeeded
-   (`E-P0C2D1-006`). P0-C2D1 remains incomplete, MCC certificate acceptance/pinning remains
-   **unresolved**, and **P0-C2E manifest discovery remains not started**.
+   (`E-P0C2D1-006`). **P0-C2D1-R1** preserves that partial-live outcome-E record and corrects its
+   procedural hazard under synthetic validation: owned observer start/deadline metadata, a
+   fail-closed 150-second minimum-remaining-runtime launch decision, and machine-recorded direct
+   baseline assertions. No new live retry occurred. P0-C2D1 remains incomplete, MCC certificate
+   acceptance/pinning remains **unresolved**, and **P0-C2E manifest discovery remains not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

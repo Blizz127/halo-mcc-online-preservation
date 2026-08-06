@@ -78,6 +78,15 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   a runbook ordering requirement rather than a tool defect: the `tls-observer` preflight stage
   requires certificate material, so the exact-host certificate must be generated into scratch before
   the preflight runs. `evidence/p0c2d1r0_observer_bounds_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`.
+- **P0-C2D1-R1 — Remaining-runtime gate and retry contract.** *Complete; synthetic validation
+  only.* Commit `ed9e323` remains the historical partial-live outcome-E attempt: its observer
+  expired before client contact, produced no TLS trust verdict, and was fully restored. R1 adds
+  owned monotonic run/deadline metadata, a fail-closed launch decision requiring the exact live
+  observer/listener identity and at least 150 seconds remaining, and a machine-recorded direct
+  baseline decision requiring identity, main-menu, error-free, and clean-shutdown assertions. A
+  failed launch-window decision mandates rollback without starting Steam/MCC and is classified as a
+  pre-launch safety abort. No new live retry started. P0-C2D1 remains incomplete.
+  `evidence/p0c2d1r1_remaining_runtime_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`.
 - **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
   evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused
   connection or that the settings service is a manifest authority.

@@ -1,0 +1,51 @@
+P0-C2D1-R1 VALIDATION
+date: 2026-08-06 America/Chicago
+scope: synthetic tooling/runbook correction only
+
+STARTING GATE
+branch: main
+HEAD: ed9e3230bf559e01b7c2a0ba9938326da667c173
+HEAD^: 70fce68d7c30011ffee21f86a26cd2dae1b2fc0a
+origin/main: 70fce68d7c30011ffee21f86a26cd2dae1b2fc0a
+origin/main...HEAD behind/ahead: 0 1
+working tree before R1: clean; no nonignored untracked files
+git show --check HEAD: PASS
+git diff --check: PASS
+
+REQUESTED VALIDATION
+$ python3 -m pytest -q tests/test_p0c2d0_prelaunch.py
+149 passed in 11.82s
+
+$ python3 -m pytest -q
+268 passed in 12.10s
+
+$ python3 -m compileall -q tools tests
+PASS (no output)
+
+$ git diff --check
+PASS (no output)
+
+SYNTHETIC BOUNDARY
+All runtime tests used loopback, high unprivileged ports, injected monotonic time, synthetic
+controls, and synthetic certificates for .test names. No test slept for the 150-second gate.
+No production CLI observer path was started and no production service was contacted.
+
+SENSITIVE-MATERIAL SCAN
+PASS. Added lines contain no PEM/DER body, private-key marker, certificate/key material,
+token/cookie/auth value, XUID, SteamID, email/account identifier, raw TLS, HTTP response,
+packet capture, private home path, or real scratch path. No changed/generated material file has a
+.key/.pem/.crt/.cer/.der/.pfx/.p12/.pcap/.pcapng suffix. Synthetic SECRET-VALUE and .invalid
+fixtures found in the changed test file predate this diff and are not added R1 material. The R1
+contract JSON contains sanitized boolean/numeric metadata only.
+
+READ-ONLY FINAL SAFETY CHECKS
+/etc/hosts inode/size/mode: 4621125 / 604 / 0644
+/etc/hosts SHA-256: 58ab06ea4280182a38c8176bc4eda7d83815cc08aec9e9ed082a71a47eebf28b
+P0-C2C/P0-C2D/P0-C2D1 redirect sentinel: absent
+IPv4/IPv6 port-443 listener inventory: empty
+Steam/MCC/observer/relay/reverse-proxy relevant process inventory: empty
+prior P0-C2D1 CA thumbprint in intended MCC prefix registry: absent
+prior P0-C2D1 PID/ready/certificate/key state under /tmp and /var/tmp: absent
+
+No Steam/MCC action, certificate generation, trust modification, /etc/hosts modification,
+observer/relay/proxy start, production contact, live P0-C2D1 retry, or P0-C2E work occurred.

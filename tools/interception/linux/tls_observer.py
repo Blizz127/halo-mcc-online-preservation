@@ -13,9 +13,11 @@ import datetime
 import errno
 import ipaddress
 import json
+import math
 import os
 import socket
 import ssl
+import stat
 import sys
 import threading
 import time
@@ -38,6 +40,9 @@ MAX_CONNECTIONS = 8
 MAX_SECONDS = prelaunch_relay.MAX_SECONDS
 TLS_TOOL = "tls-observer"
 LOG_FORMAT = "p0c2d1r0-tls-observer-v2"
+LAUNCH_GATE_FORMAT = "p0c2d1r1-launch-window-v1"
+BASELINE_FORMAT = "p0c2d1r1-direct-baseline-v1"
+BASELINE_DECISION_FORMAT = "p0c2d1r1-direct-baseline-decision-v1"
 
 # Live bounds, derived from measured launch behaviour rather than guessed.
 #
@@ -55,6 +60,11 @@ LOG_FORMAT = "p0c2d1r0-tls-observer-v2"
 OBSERVED_LAUNCH_TO_TITLE_SERVICE_SECONDS = 72.0
 OBSERVED_REDIRECT_VERIFY_TO_CONNECT_SECONDS = 75.0
 RECOMMENDED_LIVE_SECONDS = 240.0
+# A client launch is allowed only while the observer still has enough runtime
+# for twice the measured redirect-verify-to-connect interval. This preserves a
+# full measured 75-second arrival window plus 75 seconds of operational margin,
+# while remaining compatible with the recommended 240-second observer run.
+MIN_LIVE_LAUNCH_REMAINING_SECONDS = 150.0
 # Reconnect headroom. Unlike the relay, the observer has no lingering mode: it
 # stops accepting once the cap is reached. A cap of 1 would therefore leave an
 # installed redirect pointing at an exited listener after the first connection,
@@ -66,6 +76,239 @@ RECOMMENDED_LIVE_MAX_CONNECTIONS = 8
 
 def _now() -> str:
     return datetime.datetime.now(datetime.UTC).isoformat()
+
+
+def _finite_number(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    converted = float(value)
+    return converted if math.isfinite(converted) else None
+
+
+def _listener_owned_by_pid(pid: int, bind: str, port: int) -> bool:
+    """Return whether PID owns the exact IPv4 LISTEN socket, without connecting."""
+    if pid <= 0 or not 1 <= port <= 65535:
+        return False
+    try:
+        address_hex = socket.inet_aton(bind)[::-1].hex().upper()
+        endpoint = f"{address_hex}:{port:04X}"
+        inodes: set[str] = set()
+        with Path("/proc/net/tcp").open(encoding="ascii") as table:
+            next(table, None)
+            for line in table:
+                fields = line.split()
+                if len(fields) >= 10 and fields[1] == endpoint and fields[3] == "0A":
+                    inodes.add(fields[9])
+        if not inodes:
+            return False
+        for descriptor in Path(f"/proc/{pid}/fd").iterdir():
+            try:
+                target = os.readlink(descriptor)
+            except OSError:
+                continue
+            if target.startswith("socket:[") and target[8:-1] in inodes:
+                return True
+    except (OSError, ValueError):
+        return False
+    return False
+
+
+def _empty_launch_gate_result(minimum_required: float) -> dict:
+    return {
+        "format": LAUNCH_GATE_FORMAT,
+        "observer_alive": False,
+        "listener_ready": False,
+        "run_identity_valid": False,
+        "runtime_metadata_valid": False,
+        "configured_timeout_seconds": None,
+        "elapsed_seconds": None,
+        "remaining_seconds": None,
+        "minimum_required_seconds": minimum_required,
+        "safe_to_launch": False,
+        "failure_reasons": ["malformed_control_state"],
+    }
+
+
+def evaluate_launch_window(
+    pid_file: Path,
+    ready_file: Path,
+    bind: str = prelaunch_relay.AUTHORIZED_BIND,
+    port: int = prelaunch_relay.AUTHORIZED_PORT,
+    minimum_required: float = MIN_LIVE_LAUNCH_REMAINING_SECONDS,
+    *,
+    monotonic_now=time.monotonic,
+    pid_matches=prelaunch_relay._pid_matches_tool,
+    listener_owned=_listener_owned_by_pid,
+) -> dict:
+    """Evaluate the owned observer launch window and return sanitized metadata."""
+    minimum = _finite_number(minimum_required)
+    if minimum is None or minimum <= 0:
+        minimum = MIN_LIVE_LAUNCH_REMAINING_SECONDS
+    result = _empty_launch_gate_result(minimum)
+    try:
+        pid_identity, pid_state = prelaunch_relay._read_control_identity(Path(pid_file))
+        ready_identity, ready_state = prelaunch_relay._read_control_identity(Path(ready_file))
+        if not isinstance(pid_state, dict) or not isinstance(ready_state, dict):
+            return result
+
+        pid = pid_state.get("pid")
+        run_id = pid_state.get("run_id")
+        common_identity = (
+            pid_state.get("format") == prelaunch_relay.CONTROL_FORMAT
+            and ready_state.get("format") == prelaunch_relay.CONTROL_FORMAT
+            and pid_state.get("tool") == TLS_TOOL
+            and ready_state.get("tool") == TLS_TOOL
+            and pid_state.get("kind") == "pid"
+            and ready_state.get("kind") == "ready"
+            and isinstance(pid, int) and not isinstance(pid, bool) and pid > 0
+            and ready_state.get("pid") == pid
+            and isinstance(run_id, str) and bool(run_id)
+            and ready_state.get("run_id") == run_id
+            and ready_state.get("ready") is True
+            and ready_state.get("bind") == bind
+            and ready_state.get("port") == port
+        )
+
+        start_pid = _finite_number(pid_state.get("run_started_monotonic_seconds"))
+        start_ready = _finite_number(ready_state.get("run_started_monotonic_seconds"))
+        timeout_pid = _finite_number(pid_state.get("configured_timeout_seconds"))
+        timeout_ready = _finite_number(ready_state.get("configured_timeout_seconds"))
+        deadline_pid = _finite_number(pid_state.get("deadline_monotonic_seconds"))
+        deadline_ready = _finite_number(ready_state.get("deadline_monotonic_seconds"))
+        wall_pid = pid_state.get("run_started_wall_time")
+        wall_ready = ready_state.get("run_started_wall_time")
+        try:
+            parsed_wall = datetime.datetime.fromisoformat(wall_pid) if isinstance(wall_pid, str) else None
+        except ValueError:
+            parsed_wall = None
+        metadata_valid = (
+            start_pid is not None and start_ready == start_pid
+            and timeout_pid is not None and timeout_ready == timeout_pid
+            and deadline_pid is not None and deadline_ready == deadline_pid
+            and 0 < timeout_pid <= MAX_SECONDS
+            and math.isclose(
+                deadline_pid, start_pid + timeout_pid, rel_tol=0.0, abs_tol=1e-6
+            )
+            and wall_ready == wall_pid
+            and parsed_wall is not None and parsed_wall.tzinfo is not None
+        )
+        now = _finite_number(monotonic_now())
+        if not common_identity or not metadata_valid or now is None or now < start_pid:
+            return result
+
+        observer_alive = bool(pid_matches(pid, TLS_TOOL))
+        listener_ready = bool(listener_owned(pid, bind, port))
+
+        # Re-read after process/listener inspection so replaced controls cannot
+        # pass on identities that ceased to be owned during the check.
+        pid_after, _ = prelaunch_relay._read_control_identity(Path(pid_file))
+        ready_after, _ = prelaunch_relay._read_control_identity(Path(ready_file))
+        controls_stable = (
+            pid_after.device == pid_identity.device
+            and pid_after.inode == pid_identity.inode
+            and pid_after.content == pid_identity.content
+            and ready_after.device == ready_identity.device
+            and ready_after.inode == ready_identity.inode
+            and ready_after.content == ready_identity.content
+        )
+        elapsed = now - start_pid
+        remaining = deadline_pid - now
+        reasons: list[str] = []
+        if not controls_stable:
+            reasons.append("run_identity_invalid")
+        if not observer_alive:
+            reasons.append("observer_not_alive")
+        if not listener_ready:
+            reasons.append("listener_not_ready")
+        if remaining <= 0:
+            reasons.append("observer_expired")
+        elif remaining < minimum:
+            reasons.append("insufficient_remaining_runtime")
+
+        result.update({
+            "observer_alive": observer_alive,
+            "listener_ready": listener_ready,
+            "run_identity_valid": controls_stable,
+            "runtime_metadata_valid": True,
+            "configured_timeout_seconds": timeout_pid,
+            "elapsed_seconds": round(elapsed, 3),
+            "remaining_seconds": round(remaining, 3),
+            "safe_to_launch": not reasons,
+            "failure_reasons": reasons,
+        })
+        return result
+    except (OSError, prelaunch_relay.RelaySafetyError, TypeError, ValueError):
+        return result
+
+
+def evaluate_baseline(document: object) -> dict:
+    """Validate and decide the machine-recorded direct-baseline contract."""
+    required_booleans = (
+        "steam_launched_normally",
+        "mcc_launched_normally",
+        "identity_success",
+        "main_menu_success",
+        "certificate_or_service_error",
+        "clean_shutdown",
+    )
+    output = {
+        "format": BASELINE_DECISION_FORMAT,
+        "contract_valid": False,
+        "steam_launched_normally": None,
+        "mcc_launched_normally": None,
+        "sign_in_mode": None,
+        "identity_success": None,
+        "main_menu_success": None,
+        "certificate_or_service_error": None,
+        "clean_shutdown": None,
+        "safe_to_continue": False,
+        "failure_reasons": ["malformed_baseline"],
+    }
+    if not isinstance(document, dict) or document.get("format") != BASELINE_FORMAT:
+        return output
+    if any(type(document.get(name)) is not bool for name in required_booleans):
+        return output
+    sign_in_mode = document.get("sign_in_mode")
+    if sign_in_mode not in {"cached", "interactive", "unknown"}:
+        return output
+
+    output.update({name: document[name] for name in required_booleans})
+    output["sign_in_mode"] = sign_in_mode
+    output["contract_valid"] = True
+    reasons: list[str] = []
+    if not document["steam_launched_normally"]:
+        reasons.append("steam_launch_failed")
+    if not document["mcc_launched_normally"]:
+        reasons.append("mcc_launch_failed")
+    if not document["identity_success"]:
+        reasons.append("identity_not_confirmed")
+    if not document["main_menu_success"]:
+        reasons.append("main_menu_not_confirmed")
+    if document["certificate_or_service_error"]:
+        reasons.append("certificate_or_service_error")
+    if not document["clean_shutdown"]:
+        reasons.append("unclean_shutdown")
+    output["failure_reasons"] = reasons
+    output["safe_to_continue"] = not reasons
+    return output
+
+
+def _read_bounded_json(path: Path) -> object:
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as exc:
+        raise ValueError("cannot safely inspect baseline record") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > 4096:
+            raise ValueError("baseline record is not a bounded regular file")
+        content = os.read(fd, 4097)
+    finally:
+        os.close(fd)
+    try:
+        return json.loads(content.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("baseline record is malformed") from exc
 
 
 def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "127.0.0.1",
@@ -122,6 +365,8 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
     observations: list[dict] = []
     exit_reason = "total_deadline"
     started_monotonic = time.monotonic()
+    started_wall_time = _now()
+    deadline = started_monotonic + total_timeout
 
     def _document() -> dict:
         """Metadata-only run summary. No payload, peer address, or value appears here."""
@@ -166,18 +411,23 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
         listener.close()
         raise
     assert safe_log is not None
-    deadline = time.monotonic() + total_timeout
     pid = os.getpid()
     run_id = uuid.uuid4().hex
+    runtime_identity = {
+        "run_started_monotonic_seconds": started_monotonic,
+        "run_started_wall_time": started_wall_time,
+        "configured_timeout_seconds": total_timeout,
+        "deadline_monotonic_seconds": deadline,
+    }
     pid_identity = None
     ready_identity = None
     try:
         pid_identity = prelaunch_relay.create_control_file(
-            pid_file, TLS_TOOL, "pid", pid, run_id
+            pid_file, TLS_TOOL, "pid", pid, run_id, runtime_identity
         )
         ready_identity = prelaunch_relay.create_control_file(
             ready_file, TLS_TOOL, "ready", pid, run_id,
-            {"ready": True, "bind": bind, "port": port},
+            {**runtime_identity, "ready": True, "bind": bind, "port": port},
         )
         if ready_event:
             ready_event.set()
@@ -298,8 +548,11 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cert", type=Path, required=True)
-    parser.add_argument("--key", type=Path, required=True)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--check-launch-window", action="store_true")
+    modes.add_argument("--check-baseline", type=Path)
+    parser.add_argument("--cert", type=Path)
+    parser.add_argument("--key", type=Path)
     parser.add_argument("--port", type=int, default=443)
     parser.add_argument("--bind", default=prelaunch_relay.AUTHORIZED_BIND)
     parser.add_argument("--max-connections", type=int,
@@ -307,10 +560,37 @@ def main() -> int:
                         help="reconnect headroom; the observer stops accepting at the cap")
     parser.add_argument("--seconds", type=float, default=RECOMMENDED_LIVE_SECONDS,
                         help=f"total runtime; hard maximum is {MAX_SECONDS:g}s")
-    parser.add_argument("--log", type=Path, required=True)
-    parser.add_argument("--pid-file", type=Path, required=True)
-    parser.add_argument("--ready-file", type=Path, required=True)
+    parser.add_argument("--log", type=Path)
+    parser.add_argument("--pid-file", type=Path)
+    parser.add_argument("--ready-file", type=Path)
     args = parser.parse_args()
+    if args.check_launch_window:
+        if args.pid_file is None or args.ready_file is None:
+            parser.error("--check-launch-window requires --pid-file and --ready-file")
+        if (
+            args.bind != prelaunch_relay.AUTHORIZED_BIND
+            or args.port != prelaunch_relay.AUTHORIZED_PORT
+        ):
+            decision = _empty_launch_gate_result(
+                MIN_LIVE_LAUNCH_REMAINING_SECONDS
+            )
+            decision["failure_reasons"] = ["unauthorized_listener_target"]
+        else:
+            decision = evaluate_launch_window(
+                args.pid_file, args.ready_file, args.bind, args.port
+            )
+        print(json.dumps(decision, sort_keys=True))
+        return 0 if decision["safe_to_launch"] else 2
+    if args.check_baseline is not None:
+        try:
+            baseline = _read_bounded_json(args.check_baseline)
+        except ValueError:
+            baseline = None
+        decision = evaluate_baseline(baseline)
+        print(json.dumps(decision, sort_keys=True))
+        return 0 if decision["safe_to_continue"] else 2
+    if any(value is None for value in (args.cert, args.key, args.log, args.pid_file, args.ready_file)):
+        parser.error("observer mode requires --cert, --key, --log, --pid-file, and --ready-file")
     result = run_observer(args.cert, args.key, args.port, args.bind, "stage_d",
                           args.max_connections, args.log, total_timeout=args.seconds,
                           pid_file=args.pid_file, ready_file=args.ready_file,

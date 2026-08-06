@@ -4,8 +4,9 @@ Status: **P0-C2D0-R2 corrected the live-contract gaps, and the separately author
 single-host blind-relay rung completed as `A. BLIND RELAY PASS`. The follow-on P0-C2D1 TLS/SNI/ALPN
 observation first halted before live action; P0-C2D1-R0 corrected its bounds. A later live attempt
 ended `E. SNI / OBSERVER CONTRACT FAILURE` because setup consumed the observer window and launch
-was issued after expiry. No MCC TLS verdict exists. A separate Meta Muse Spark 1.2 read-only audit
-of P0-C2D0 remains pending.**
+was issued after expiry. P0-C2D1-R1 now adds a fail-closed remaining-runtime gate and explicit
+direct-baseline contract under synthetic validation. No MCC TLS verdict exists, and no new live
+retry has started. A separate Meta Muse Spark 1.2 read-only audit of P0-C2D0 remains pending.**
 
 R1 corrected every blocker from the Codex Sol adversarial audit (`C. REJECT — RELAY SAFETY FAILURE`
 on the first local candidate). R2 corrects a different class of problem: the tooling obeyed its
@@ -66,7 +67,9 @@ expectations the code held. A suite that encodes an assumption cannot detect it.
   application parsing. `h2` is explicitly `unsupported_protocol` and is never parsed. Certificate
   acceptance requires post-handshake application data. It shares the relay's owned-control lifecycle.
   Its runtime bounds were reconciled with measured live behaviour in **P0-C2D1-R0**, and every run
-  now records why it ended.
+  now records why it ended. **P0-C2D1-R1** adds owned run-start/deadline metadata and a read-only
+  launch-window decision that validates PID/run identity, observer liveness, the exact listener,
+  and remaining monotonic runtime immediately before a live client launch.
 - `reverse_proxy.py` is explicitly **NOT READY**. Its inherited runnable forwarder was removed because
   safe streaming HTTP/1.1 framing, persistent exchanges, upgrades/trailers/informational responses,
   and TLS half-close/deadline behavior are not proven.
@@ -194,6 +197,74 @@ and validate every non-observer prerequisite and the exact install/rollback comm
 the observer, and refuse redirect or launch unless the remaining bounded runtime still covers the
 measured live interval. The current result does not justify application-layer passthrough work.
 
+## Remaining-runtime and baseline correction — P0-C2D1-R1
+
+R1 is a tooling/runbook correction only. It preserves commit `ed9e323` as the historical partial
+live P0-C2D1 attempt: outcome E, observer expired before live client contact, no TLS trust result,
+and complete system restoration. R1 observed no new MCC behavior and does not change an architecture
+hypothesis.
+
+The named launch threshold is
+`MIN_LIVE_LAUNCH_REMAINING_SECONDS = 150`. It is twice the measured 75-second
+redirect-verify-to-connect interval (`E-P0C2D-004`), leaving a second measured interval as operating
+margin rather than using the 72-second launch-to-title-service measurement as a razor-thin cutoff.
+The threshold remains compatible with the recommended 240-second observer runtime.
+
+Every observer PID and ready control now owns the same run identifier, process identifier,
+boot-monotonic start/deadline, wall-clock audit timestamp, and configured timeout. Immediately before
+Steam/MCC launch, run the read-only decision as the same privileged operator that owns the controls:
+
+```bash
+sudo python3 tools/interception/linux/tls_observer.py \
+  --check-launch-window \
+  --pid-file "$SCRATCH/observer.pid" \
+  --ready-file "$SCRATCH/observer.ready"
+```
+
+The command emits only sanitized JSON: `observer_alive`, `listener_ready`, `run_identity_valid`,
+`runtime_metadata_valid`, configured timeout, elapsed and remaining seconds, the minimum required
+seconds, `safe_to_launch`, and sanitized failure reasons. It reads `/proc` and owned controls without
+connecting to the listener. Missing, malformed, mismatched, replaced, expired, or inconsistent state
+fails closed; false `safe_to_launch` exits nonzero. No key/certificate path, content, account datum,
+or payload datum is emitted.
+
+The direct baseline is also machine-recorded. A baseline document has format
+`p0c2d1r1-direct-baseline-v1` and exactly records normal Steam launch, normal MCC launch,
+`sign_in_mode` (`cached`, `interactive`, or `unknown`), Microsoft/Xbox identity success, main-menu
+success, certificate/service-error presence, and clean shutdown. Check it with:
+
+```bash
+python3 tools/interception/linux/tls_observer.py --check-baseline "$SCRATCH/direct_baseline.json"
+```
+
+The rung cannot continue unless Steam and MCC launched normally, `identity_success == true`,
+`main_menu_success == true`, `certificate_or_service_error == false`, and
+`clean_shutdown == true`. Missing keys, wrong types, and vague operator prose fail closed; “baseline
+looked okay” is not an accepted result.
+
+Any separately authorized retry must use this exact order:
+
+1. repository/environment gate;
+2. direct baseline with explicit identity/menu assertions;
+3. fully exit Steam/MCC;
+4. create fresh scratch;
+5. generate a fresh exact-host CA/leaf;
+6. run final TLS-observer preflight;
+7. install prefix-only CA trust;
+8. start observer;
+9. verify observer ready;
+10. install exact-host redirect;
+11. verify redirect and protected identity scope;
+12. run the minimum-remaining-runtime gate;
+13. only when `safe_to_launch == true`, start Steam/MCC immediately;
+14. observe; and
+15. roll back immediately once a sufficient result is obtained.
+
+If step 12 fails, **do not launch Steam or MCC**. Roll back the redirect and prefix trust immediately
+and record a pre-launch safety abort, never `D. OBSERVER NOT CONTACTED`. A new retry remains separately
+authorized work; R1 does not create its scratch, certificate, trust, observer, redirect, or client
+state.
+
 ## Phase boundary
 
 P0-C2D0-R2 establishes only that the preflight, probe, and relay bounds now match the live rung's
@@ -201,8 +272,9 @@ authorized state and scope, under synthetic validation. It establishes no MCC re
 TLS acceptance or pinning verdict, settings manifest, endpoint authority, or production forwarding
 behaviour, and it changes no architecture hypothesis.
 
-**P0-C2D is complete. P0-C2D1 remains incomplete after an E-class lifecycle failure. P0-C2E is not
-started.** P0-C2D's opaque-transport result still supports a separately authorized retry, but the
-P0-C2D1 attempt observed no MCC TLS behavior and authorizes neither another run nor application-layer
+**P0-C2D is complete. P0-C2D1 remains incomplete after an E-class lifecycle failure; R1 corrects
+the timeout hazard synthetically, but a new live retry is unstarted. P0-C2E is not started.**
+P0-C2D's opaque-transport result still supports a separately authorized retry, but the P0-C2D1
+attempt observed no MCC TLS behavior and authorizes neither another run nor application-layer
 passthrough. Certificate acceptance and pinning remain unresolved. The corrected tooling still
 awaits the separate Meta Muse Spark 1.2 read-only audit noted above.

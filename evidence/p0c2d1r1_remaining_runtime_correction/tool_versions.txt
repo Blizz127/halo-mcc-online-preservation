@@ -1,0 +1,13 @@
+P0-C2D1-R1 corrected-input SHA-256 hashes
+
+b420dd4c2b37014547cdce87ace152fabd8e726019e803782d20274c80d8d280  tools/interception/linux/tls_observer.py
+034c7cdc29a66b7588ae2dfe83fd2a644f31b75d5db558a11ff5f7b983943bcc  tests/test_p0c2d0_prelaunch.py
+cf650fc572708682be79bfc3bb858ab19b14193ea8ba9a75d1256e110e96ae7d  docs/PRELAUNCH_INTERCEPTION.md
+076e4d16dbda63b09ef26752f08849beacfcb6cb442741b524bfd54d10094cb6  docs/STATUS.md
+0910969e9f8f3bebe18d55f52a97f0d5eb33ad748883f007ee752839ae1f3958  docs/ROADMAP.md
+a313a91b936192b8d74b045719ecff2725b74d858f10039910beab853303de0b  evidence/p0c2d1r1_remaining_runtime_correction/REPORT.md
+ce4c9df0cceac20cf3dbe261251f551425d4ffe77d0368e424b16cba88972352  evidence/p0c2d1r1_remaining_runtime_correction/contract_example.json
+
+Python 3.14.6
+pytest 9.1.1
+OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)

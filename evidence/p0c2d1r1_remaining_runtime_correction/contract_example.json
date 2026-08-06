@@ -1,0 +1,13 @@
+{
+  "configured_timeout_seconds": 240.0,
+  "elapsed_seconds": 42.1,
+  "failure_reasons": [],
+  "format": "p0c2d1r1-launch-window-v1",
+  "listener_ready": true,
+  "minimum_required_seconds": 150.0,
+  "observer_alive": true,
+  "remaining_seconds": 197.9,
+  "run_identity_valid": true,
+  "runtime_metadata_valid": true,
+  "safe_to_launch": true
+}
