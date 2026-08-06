@@ -1,210 +1,264 @@
-"""Local TLS observer: records handshake metadata, never request/response bodies.
-
-Purpose is diagnostic only. It answers a narrow set of questions:
-
-- did a client reach this address at all?
-- what SNI did it present?
-- did it complete the TLS handshake, or reject the certificate?
-- if it rejected, which TLS alert did it send?
-
-The alert is the interesting part. A client that does not trust the issuing CA
-sends `unknown_ca`; a client that trusts the CA but expected a specific
-certificate (pinning) typically sends `bad_certificate` or
-`certificate_unknown` **after** the CA would otherwise have validated. Those are
-different observable outcomes and this tool records which occurred rather than
-collapsing both into "it failed".
-
-What it deliberately does not do:
-
-- It never reads a request body, and never logs a header **value** — only header
-  names, which cannot carry a token.
-- It never returns a response that could be mistaken for the real service. The
-  Stage D response is an explicit `501` identifying itself as a local observer,
-  so the client cannot be fed a plausible-looking success and no modified
-  traffic is ever forwarded to an official service.
-"""
+"""Bounded TLS/ALPN observer that never forwards traffic or persists values/bodies."""
 
 from __future__ import annotations
 
+import argparse
 import datetime
+import errno
+import ipaddress
 import json
+import os
 import socket
 import ssl
 import sys
 import threading
+import time
+import uuid
 from pathlib import Path
+
+from cryptography import x509
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from exclusions import safe_header_names  # noqa: E402
+import prelaunch_relay  # noqa: E402
+import schema_extract  # noqa: E402
 
-SYNTHETIC_STAGE_A_BODY = json.dumps({
-    "service": "p0c2a-local-test",
-    "note": "synthetic response from a local test server; not related to any real service",
-    "value": 1234,
-}).encode()
-
-STAGE_D_BODY = json.dumps({
-    "observer": "p0c2a-local-tls-observer",
-    "note": "This is a local diagnostic observer. It is not the real service and "
-            "intentionally does not emulate one.",
-}).encode()
-
-
-class Observation(dict):
-    pass
+ALPN_PROTOCOLS = ["h2", "http/1.1"]
+MAX_CONNECTIONS = 8
+MAX_SECONDS = 120.0
+TLS_TOOL = "tls-observer"
 
 
 def _now() -> str:
     return datetime.datetime.now(datetime.UTC).isoformat()
 
 
-def run_observer(
-    certfile: Path,
-    keyfile: Path,
-    port: int = 8443,
-    bind: str = "127.0.0.1",
-    mode: str = "stage_a",
-    max_connections: int | None = None,
-    log_path: Path | None = None,
-    ready_event: threading.Event | None = None,
-) -> list[Observation]:
-    """Serve TLS on bind:port, recording metadata for each connection."""
-    observations: list[Observation] = []
+def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "127.0.0.1",
+                 mode: str = "stage_d", max_connections: int = 1,
+                 log_path: Path | None = None, ready_event: threading.Event | None = None,
+                 total_timeout: float = 30.0, pid_file: Path | None = None,
+                 ready_file: Path | None = None, enforce_production: bool = False,
+                 required_sni: str | None = None) -> list[dict]:
+    if not 1 <= max_connections <= MAX_CONNECTIONS:
+        raise ValueError(f"max_connections must be 1..{MAX_CONNECTIONS}")
+    if mode != "stage_d":
+        raise ValueError("observer supports only the non-forwarding stage_d mode")
+    if not 0 < total_timeout <= MAX_SECONDS:
+        raise ValueError(f"total_timeout must be >0 and <= {MAX_SECONDS:g}")
+    if enforce_production:
+        if bind != prelaunch_relay.AUTHORIZED_BIND or port != prelaunch_relay.AUTHORIZED_PORT:
+            raise ValueError("production observer must bind exactly 127.0.0.77:443")
+        cert_path, key_path = Path(certfile), Path(keyfile)
+        if (
+            not cert_path.is_file()
+            or not key_path.is_file()
+            or not prelaunch_relay._outside_repository(cert_path)
+            or not prelaunch_relay._outside_repository(key_path)
+            or prelaunch_relay._path_has_symlink(cert_path)
+            or prelaunch_relay._path_has_symlink(key_path)
+            or (key_path.stat().st_mode & 0o777) != 0o600
+        ):
+            raise ValueError("production certificate/key paths failed the safe-output contract")
+        try:
+            cert = x509.load_pem_x509_certificate(cert_path.read_bytes())
+            sans = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+            dns_names = sans.get_values_for_type(x509.DNSName)
+            lifetime = cert.not_valid_after_utc - cert.not_valid_before_utc
+            now = datetime.datetime.now(datetime.UTC)
+        except (OSError, ValueError, x509.ExtensionNotFound) as exc:
+            raise ValueError("production certificate could not be validated") from exc
+        if (
+            dns_names != [prelaunch_relay.AUTHORIZED_HOST]
+            or lifetime > datetime.timedelta(days=2)
+            or not cert.not_valid_before_utc <= now < cert.not_valid_after_utc
+        ):
+            raise ValueError("production certificate violates the exact-host/validity contract")
+        required_sni = prelaunch_relay.AUTHORIZED_HOST
+    elif not ipaddress.ip_address(bind).is_loopback or port < 1024:
+        raise ValueError("synthetic observer must use loopback and a high port")
+    control_paths = {Path(path) for path in (pid_file, ready_file) if path is not None}
+    prelaunch_relay._validate_runtime_paths(
+        [log_path, pid_file, ready_file], require_outside_repository=enforce_production,
+        allow_existing=control_paths,
+    )
+    prelaunch_relay.prepare_control_path(pid_file, TLS_TOOL, "pid")
+    prelaunch_relay.prepare_control_path(ready_file, TLS_TOOL, "ready")
 
+    observations: list[dict] = []
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(certfile=str(certfile), keyfile=str(keyfile))
-
+    context.set_alpn_protocols(ALPN_PROTOCOLS)
     seen_sni: dict[int, str | None] = {}
+    last_sni: list[str | None] = [None]
 
-    def sni_callback(sslsock, server_name, sslctx):
-        seen_sni[id(sslsock)] = server_name
+    def sni_callback(tls_socket, server_name, _context):
+        seen_sni[id(tls_socket)] = server_name
+        last_sni[0] = server_name
 
     context.sni_callback = sni_callback
-
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.bind((bind, port))
-    listener.listen(8)
-    listener.settimeout(1.0)
-
-    if ready_event is not None:
-        ready_event.set()
-
-    handled = 0
     try:
-        while max_connections is None or handled < max_connections:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind((bind, port))
+        listener.listen(min(max_connections, 8))
+        listener.settimeout(0.25)
+    except OSError as exc:
+        listener.close()
+        if exc.errno == errno.EADDRINUSE:
+            raise ValueError(f"listen address already in use: {bind}:{port}") from exc
+        raise ValueError(f"listener setup failed for {bind}:{port}: {exc.strerror}") from exc
+    safe_log = None
+    try:
+        safe_log = prelaunch_relay.SafeJsonLog(log_path)
+        safe_log.write({"format": "p0c2d0-tls-observer-v1", "observations": []})
+    except BaseException:
+        if safe_log is not None:
+            safe_log.close()
+        listener.close()
+        raise
+    assert safe_log is not None
+    deadline = time.monotonic() + total_timeout
+    pid = os.getpid()
+    run_id = uuid.uuid4().hex
+    pid_identity = None
+    ready_identity = None
+    try:
+        pid_identity = prelaunch_relay.create_control_file(
+            pid_file, TLS_TOOL, "pid", pid, run_id
+        )
+        ready_identity = prelaunch_relay.create_control_file(
+            ready_file, TLS_TOOL, "ready", pid, run_id,
+            {"ready": True, "bind": bind, "port": port},
+        )
+        if ready_event:
+            ready_event.set()
+        while len(observations) < max_connections and time.monotonic() < deadline:
             try:
-                raw, peer = listener.accept()
+                raw, _peer = listener.accept()
             except TimeoutError:
                 continue
-            handled += 1
-            record = Observation({
-                "timestamp": _now(),
-                "client_address": peer[0],
-                "client_port": peer[1],
-                "sni": None,
-                "tls_completed": False,
-                "tls_version": None,
-                "cipher": None,
-                "alert": None,
-                # Under TLS 1.3 the server completes its side of the handshake
-                # before the client has validated the certificate, so
-                # `tls_completed` alone does NOT mean the client accepted it. A
-                # client that rejects the certificate afterwards simply closes
-                # without sending a request. `client_sent_request` is therefore
-                # the reliable acceptance signal, not `tls_completed`.
-                "client_sent_request": False,
-                "client_verdict": None,
-                "request_method": None,
-                "request_path": None,
+            last_sni[0] = None
+            record = {
+                "timestamp": _now(), "sni": None, "tls_completed": False,
+                "tls_version": None, "cipher": None, "alpn": None, "alert_class": None,
+                "sni_result": None, "protocol_result": None,
+                "certificate_verdict": "unknown_no_application_data",
+                "client_sent_application_data": False, "request_method": None,
+                "normalized_path": None, "query_parameter_names": [],
                 "request_header_names": [],
-                "response_status": None,
-                "response_body_length": None,
-            })
+            }
             try:
-                raw.settimeout(10.0)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("observer total deadline reached before TLS handshake")
+                raw.settimeout(min(10.0, remaining))
                 tls = context.wrap_socket(raw, server_side=True)
-                record["sni"] = seen_sni.get(id(tls))
+                record["sni"] = schema_extract.normalize_hostname(seen_sni.get(id(tls)))
                 record["tls_completed"] = True
                 record["tls_version"] = tls.version()
                 cipher = tls.cipher()
                 record["cipher"] = cipher[0] if cipher else None
-
-                # Read only the request head, never the body.
-                head = b""
-                while b"\r\n\r\n" not in head and len(head) < 16384:
-                    chunk = tls.recv(4096)
-                    if not chunk:
-                        break
-                    head += chunk
-                if head:
-                    record["client_sent_request"] = True
-                    record["client_verdict"] = "accepted_certificate"
-                    lines = head.split(b"\r\n\r\n", 1)[0].decode("latin-1").splitlines()
-                    if lines:
-                        parts = lines[0].split()
-                        if len(parts) >= 2:
-                            record["request_method"] = parts[0]
-                            record["request_path"] = parts[1]
-                    names = [ln.split(":", 1)[0] for ln in lines[1:] if ":" in ln]
-                    record["request_header_names"] = safe_header_names(names)
+                record["alpn"] = tls.selected_alpn_protocol()
+                if required_sni is None:
+                    record["sni_result"] = "not_enforced_synthetic"
+                elif record["sni"] is None:
+                    record["sni_result"] = "missing"
+                    record["protocol_result"] = "sni_rejected"
+                elif record["sni"] != required_sni:
+                    record["sni_result"] = "mismatch"
+                    record["protocol_result"] = "sni_rejected"
                 else:
-                    # Handshake finished server-side, then the peer went away
-                    # without asking for anything: a post-handshake rejection.
-                    record["client_verdict"] = "rejected_after_handshake"
+                    record["sni_result"] = "exact"
 
-                if mode == "stage_a":
-                    body, status = SYNTHETIC_STAGE_A_BODY, b"200 OK"
+                if record["protocol_result"] == "sni_rejected":
+                    pass  # Close without reading application data.
+                elif record["alpn"] == "h2":
+                    record["protocol_result"] = "unsupported_protocol"
+                    remaining = deadline - time.monotonic()
+                    if remaining > 0:
+                        tls.settimeout(min(1.0, remaining))
+                        opaque_presence = tls.recv(1)
+                        if opaque_presence:
+                            record["client_sent_application_data"] = True
+                            record["certificate_verdict"] = "accepted_certificate"
                 else:
-                    body, status = STAGE_D_BODY, b"501 Not Implemented"
-                tls.sendall(
-                    b"HTTP/1.1 " + status + b"\r\nContent-Type: application/json\r\n"
-                    b"Content-Length: " + str(len(body)).encode() + b"\r\n"
-                    b"Connection: close\r\n\r\n" + body
-                )
-                record["response_status"] = status.decode().split()[0]
-                record["response_body_length"] = len(body)
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError("observer total deadline reached before application data")
+                    tls.settimeout(min(10.0, remaining))
+                    data = tls.recv(16384)
+                    if data:
+                        record["client_sent_application_data"] = True
+                        record["certificate_verdict"] = "accepted_certificate"
+                        record["protocol_result"] = "http1_metadata"
+                    else:
+                        record["protocol_result"] = "no_application_data"
+                    if data and record["alpn"] in (None, "http/1.1"):
+                        head = data.split(b"\r\n\r\n", 1)[0]
+                        lines = head.decode("latin-1").splitlines()
+                        bits = lines[0].split() if lines else []
+                        if len(bits) >= 2:
+                            record["request_method"] = schema_extract.normalize_http_method(bits[0])
+                            record.update(schema_extract.normalize_request_target(bits[1]))
+                        record["request_header_names"] = safe_header_names(
+                            line.split(":", 1)[0] for line in lines[1:] if ":" in line
+                        )
                 tls.close()
             except ssl.SSLError as exc:
-                # The client refused our certificate. Which alert it sent is the
-                # distinguishing evidence between "CA not trusted" and "pinned".
-                reason = getattr(exc, "reason", None)
-                record["alert"] = reason or f"{type(exc).__name__}"
-                record["client_verdict"] = (
-                    "rejected_during_handshake" if not record["tls_completed"]
-                    else "rejected_after_handshake"
+                record["alert_class"] = str(getattr(exc, "reason", type(exc).__name__))
+                if record["sni"] is None:
+                    record["sni"] = schema_extract.normalize_hostname(last_sni[0])
+                if required_sni is not None:
+                    if record["sni"] is None:
+                        record["sni_result"] = "missing"
+                        record["protocol_result"] = "sni_rejected"
+                    elif record["sni"] != required_sni:
+                        record["sni_result"] = "mismatch"
+                        record["protocol_result"] = "sni_rejected"
+                record["certificate_verdict"] = (
+                    "rejected_after_server_handshake"
+                    if record["tls_completed"]
+                    else "rejected_during_handshake"
                 )
-            except (OSError, ValueError) as exc:
-                record["alert"] = f"{type(exc).__name__}: {exc}"
-                if record["client_verdict"] is None:
-                    record["client_verdict"] = "connection_error"
+            except (OSError, UnicodeDecodeError, ValueError) as exc:
+                record["alert_class"] = type(exc).__name__
             finally:
                 observations.append(record)
-                if log_path is not None:
-                    Path(log_path).write_text(json.dumps(observations, indent=2), encoding="utf-8")
                 try:
+                    if log_path:
+                        safe_log.write({
+                            "format": "p0c2d0-tls-observer-v1",
+                            "observations": observations,
+                        })
+                finally:
                     raw.close()
-                except OSError:
-                    pass
     finally:
         listener.close()
+        prelaunch_relay.remove_owned_control(ready_identity)
+        prelaunch_relay.remove_owned_control(pid_identity)
+        safe_log.close()
     return observations
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cert", type=Path, required=True)
     parser.add_argument("--key", type=Path, required=True)
-    parser.add_argument("--port", type=int, default=8443)
-    parser.add_argument("--bind", default="127.0.0.1")
-    parser.add_argument("--mode", choices=("stage_a", "stage_d"), default="stage_a")
-    parser.add_argument("--max-connections", type=int, default=None)
-    parser.add_argument("--log", type=Path, default=None)
+    parser.add_argument("--port", type=int, default=443)
+    parser.add_argument("--bind", default=prelaunch_relay.AUTHORIZED_BIND)
+    parser.add_argument("--max-connections", type=int, default=1)
+    parser.add_argument("--seconds", type=float, default=30.0)
+    parser.add_argument("--log", type=Path, required=True)
+    parser.add_argument("--pid-file", type=Path, required=True)
+    parser.add_argument("--ready-file", type=Path, required=True)
     args = parser.parse_args()
-
-    result = run_observer(
-        args.cert, args.key, args.port, args.bind, args.mode, args.max_connections, args.log
-    )
+    result = run_observer(args.cert, args.key, args.port, args.bind, "stage_d",
+                          args.max_connections, args.log, total_timeout=args.seconds,
+                          pid_file=args.pid_file, ready_file=args.ready_file,
+                          enforce_production=True)
     print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

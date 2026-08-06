@@ -41,7 +41,9 @@ def test_sibling_parent_and_suffix_are_rejected(bad: str) -> None:
         host_redirect.validate_target(SELECTED, bad)
 
 
-@pytest.mark.parametrize("wild", ["*.halowaypoint.com", "*.svc.halowaypoint.com", ".halowaypoint.com"])
+@pytest.mark.parametrize(
+    "wild", ["*.halowaypoint.com", "*.svc.halowaypoint.com", ".halowaypoint.com"]
+)
 def test_wildcard_and_suffix_forms_are_rejected(wild: str) -> None:
     with pytest.raises(host_redirect.RedirectSafetyError):
         host_redirect.validate_target(SELECTED, wild)
@@ -63,8 +65,12 @@ def test_empty_target_fails_closed() -> None:
         host_redirect.validate_target(SELECTED, "")
 
 
-def test_install_command_contains_sentinel_and_is_append_only() -> None:
-    cmds = host_redirect.install_commands(SELECTED)
+def test_install_command_contains_sentinel_and_is_append_only(tmp_path: Path) -> None:
+    hosts = tmp_path / "hosts"
+    hosts.write_text("127.0.0.1 localhost\n", encoding="utf-8")
+    state = tmp_path / "prior.json"
+    host_redirect.record_prior_state(state, hosts)
+    cmds = host_redirect.install_commands(SELECTED, hosts_path=hosts, state_path=state)
     assert len(cmds) == 1
     cmd = cmds[0]
     assert host_redirect.SENTINEL in cmd
@@ -73,17 +79,28 @@ def test_install_command_contains_sentinel_and_is_append_only() -> None:
     assert host_redirect.OBSERVER_LOOPBACK in cmd
 
 
-def test_rollback_command_targets_only_sentinel_lines_and_preserves_inode() -> None:
-    cmd = host_redirect.rollback_commands()[0]
-    assert host_redirect.SENTINEL in cmd
-    assert "grep -v" in cmd
+def test_rollback_command_uses_exact_recorded_payload_and_preserves_inode(tmp_path: Path) -> None:
+    hosts = tmp_path / "hosts"
+    hosts.write_text("127.0.0.1 localhost\n", encoding="utf-8")
+    state = tmp_path / "prior.json"
+    payload = tmp_path / "prior.bytes"
+    host_redirect.record_prior_state(state, hosts)
+    with hosts.open("a", encoding="utf-8") as stream:
+        stream.write(
+            f"{host_redirect.OBSERVER_LOOPBACK} {host_redirect.AUTHORIZED_HOST} "
+            f"{host_redirect.SENTINEL}\n"
+        )
+    host_redirect.materialize_rollback(state, payload)
+    cmd = host_redirect.rollback_commands(state, payload)[0]
+    assert str(payload) in cmd
+    assert "cp --no-preserve=mode,ownership" in cmd
     # Must not rename /etc/hosts (which would break the container bind mount).
     assert "mv " not in cmd
 
 
-def test_install_commands_refuse_a_wildcard_selected_host() -> None:
+def test_install_commands_refuse_a_wildcard_selected_host(tmp_path: Path) -> None:
     with pytest.raises(host_redirect.RedirectSafetyError):
-        host_redirect.install_commands("*.halowaypoint.com")
+        host_redirect.install_commands("*.halowaypoint.com", state_path=tmp_path / "missing")
 
 
 # --------------------------------------------------------------------------
@@ -136,7 +153,10 @@ def test_ca_output_paths_are_scratch_not_repository(tmp_path: Path) -> None:
     for name in meta["key_files_written"]:
         produced = tmp_path / name
         assert produced.exists()
-        assert "halo-mcc-online-preservation" not in str(produced.resolve()) or str(tmp_path) in str(produced)
+        assert (
+            "halo-mcc-online-preservation" not in str(produced.resolve())
+            or str(tmp_path) in str(produced)
+        )
 
 
 # --------------------------------------------------------------------------
@@ -145,7 +165,12 @@ def test_ca_output_paths_are_scratch_not_repository(tmp_path: Path) -> None:
 
 def test_verify_scope_flags_identity_host_redirection() -> None:
     report = {
-        "identity_hosts": {"login.live.com": {"resolves_to": ["127.0.0.77"], "redirected_to_observer": True}},
+        "identity_hosts": {
+            "login.live.com": {
+                "resolves_to": ["127.0.0.77"],
+                "redirected_to_observer": True,
+            }
+        },
     }
     # Simulate the boolean the real verify_scope computes.
     unaffected = not any(v["redirected_to_observer"] for v in report["identity_hosts"].values())

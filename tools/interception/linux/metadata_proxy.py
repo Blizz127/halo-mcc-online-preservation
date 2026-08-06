@@ -36,6 +36,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from exclusions import is_excluded, redact_text, safe_header_names  # noqa: E402
+import schema_extract  # noqa: E402
 
 # SNI parsing is reused from the P0-C1 pcap tooling rather than reimplemented,
 # so both rungs agree on how a ClientHello is read.
@@ -132,12 +133,12 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         else:
             # Plain HTTP through the proxy: record metadata, do not forward a
             # body, and do not fetch on the client's behalf.
+            target_metadata = schema_extract.normalize_request_target(target)
             self.state.record({
                 "timestamp": _now(),
                 "event": "http_request_seen",
-                "method": method,
-                "target_host": redact_text(target),
-                "client_address": self.client_address[0],
+                "method": schema_extract.normalize_http_method(method),
+                **target_metadata,
                 "request_header_names": safe_header_names(headers),
                 "note": "plain-HTTP request observed; not forwarded",
             })
@@ -149,8 +150,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         entry = {
             "timestamp": _now(),
             "event": "connect",
-            "client_address": self.client_address[0],
-            "target_host": host,
+            "target_host": schema_extract.normalize_hostname(host),
             "target_port": port,
             "excluded_from_inspection": excluded,
             "action": None,
@@ -220,7 +220,9 @@ class ProxyHandler(socketserver.StreamRequestHandler):
                         # Excluded hosts: do not even inspect the ClientHello.
                         if not entry["excluded_from_inspection"]:
                             try:
-                                entry["sni"] = parse_tls_client_hello_sni(data)
+                                entry["sni"] = schema_extract.normalize_hostname(
+                                    parse_tls_client_hello_sni(data)
+                                )
                             except Exception:
                                 entry["sni"] = None
                     entry["bytes_relayed"] = entry.get("bytes_relayed", 0) + len(data)
@@ -250,7 +252,7 @@ class ProxyHandler(socketserver.StreamRequestHandler):
             tls = context.wrap_socket(self.connection, server_side=True)
         except ssl.SSLError as exc:
             entry["tls_result"] = "client_rejected_certificate"
-            entry["alert"] = str(getattr(exc, "reason", exc))
+            entry["alert"] = str(getattr(exc, "reason", type(exc).__name__))
             self.state.record(entry)
             return
 
@@ -268,8 +270,8 @@ class ProxyHandler(socketserver.StreamRequestHandler):
                 if lines:
                     bits = lines[0].split()
                     if len(bits) >= 2:
-                        entry["request_method"] = bits[0]
-                        entry["request_path"] = redact_text(bits[1])
+                        entry["request_method"] = schema_extract.normalize_http_method(bits[0])
+                        entry.update(schema_extract.normalize_request_target(bits[1]))
                 entry["request_header_names"] = safe_header_names(
                     ln.split(":", 1)[0] for ln in lines[1:] if ":" in ln
                 )

@@ -107,4 +107,21 @@ def redact_text(value: str) -> str:
 
 def safe_header_names(header_names) -> list[str]:
     """Header NAMES only, lowercased and sorted; values are never accepted here."""
-    return sorted({str(n).lower() for n in header_names})
+    safe = set()
+    for raw_name in header_names:
+        name = str(raw_name).lower()
+        opaque = (
+            len(name) > 64
+            or re.fullmatch(r"[0-9a-f]{16,}", name, re.IGNORECASE) is not None
+            or (
+                len(name) >= 16
+                and re.fullmatch(r"[a-z0-9_-]+", name) is not None
+                and re.search(r"[a-z]", name) is not None
+                and re.search(r"\d", name) is not None
+            )
+        )
+        if opaque or re.fullmatch(r"[!#$%&'*+.^_`|~0-9a-z-]{1,64}", name) is None:
+            safe.add("{redacted_header_name}")
+        else:
+            safe.add(name)
+    return sorted(safe)

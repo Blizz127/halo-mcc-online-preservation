@@ -1,0 +1,62 @@
+P0-C2D0-R1 synthetic validation
+
+Adversarial audit history:
+  first local candidate: fb0ebd3934de354734ebd526bbba8714d49ba57e
+  Codex Sol disposition: C. REJECT — RELAY SAFETY FAILURE
+  separate Meta Muse Spark 1.2 read-only audit: pending
+  additional findings: redirect rollback, Wine removal, request metadata,
+    schema keys, TLS observation, preflight, and documentation
+
+Environment:
+  Python 3.14.6
+  pytest 9.1.1
+
+Targeted R1 safety suite:
+  python3 -m pytest -q tests/test_p0c2d0_prelaunch.py
+  57 passed in 4.51s
+
+Full repository suite:
+  python3 -m pytest -q
+  176 passed in 5.31s
+
+Adversarial coverage:
+  PASS recognized stale ready removal
+  PASS active PID/ready refusal and unrelated-path preservation
+  PASS EADDRINUSE creates no log/PID/ready artifact
+  PASS ready publication after listen/state initialization
+  PASS replaced ready path preserved during cleanup
+  PASS stalled relay write and worker shutdown bounded
+  PASS exact-line rollback and hash/size/inode/sentinel verification
+  PASS append/edit/duplicate/missing rollback state fails closed
+  PASS malformed thumbprint and every delete/query outcome fails closed
+  PASS required verified_present install metadata
+  PASS raw and percent-encoded JWT, Xbox auth, UUID, email, SteamID64,
+       XUID, long hex, base64/base64url, alphabetic, and mixed opaque values
+  PASS origin-form fragment removal and query-value discard
+  PASS collision-safe dynamic schema-key redaction and deterministic fixtures
+  PASS exact/missing/wrong SNI, explicit h2 unsupported result, no h2 parsing,
+       and application-data-required certificate verdict
+  PASS TLS stale-control and artifact-free bind-failure lifecycle
+  PASS mocked Git/proxy/listener/process/Steam/hosts/identity/CA/tool/path gates
+       without starting Wine or inspecting a live Proton prefix
+
+Static/status checks:
+  python3 -m compileall -q tools tests
+  git diff --check
+  both passed
+
+  python3 -m ruff check tools/interception/linux tests
+  not run: ruff is not installed in the validation environment
+
+Network and mutation boundary:
+  synthetic loopback listeners only, high unprivileged ports
+  no production service contacted
+  no sudo command executed
+  no Steam, MCC, Wine, relay, observer, or capture process started outside tests
+  no /etc/hosts, DNS, routing, firewall, proxy, Wine, or certificate-store state modified
+  no listener or test process remained after validation
+
+Phase boundary:
+  P0-C2D live experiment not started
+  P0-C2E manifest discovery not started
+  reverse proxy remains NOT READY and safely disabled

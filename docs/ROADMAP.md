@@ -33,10 +33,19 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   to the settings service and never contacted the observer. Certificate acceptance/pinning remain
   unresolved. Further narrowed H-007. `evidence/p0c2c_post_auth_interception/`,
   `docs/POST_AUTH_INTERCEPTION.md`.
-- **P0-C2D — MCC endpoint manifest and configuration-surface discovery.** *Not started, requires its
-  own authorization.* Must not assume a redirect intercepts a reused connection: needs a trigger
-  proven to force a fresh settings fetch, or a mechanism acting before the connection is established
-  without running identity under interception.
+- **P0-C2D0 — Pre-launch interception tooling hardening.** *R1 corrected after the Codex Sol
+  adversarial audit; a separate Meta Muse Spark 1.2 read-only audit remains pending; synthetic
+  validation only.* Codex Sol returned `C. REJECT — RELAY SAFETY FAILURE` for the first local
+  candidate and identified redirect rollback, Wine-trust, metadata,
+  schema, TLS-observer, preflight, and documentation blockers. R1 corrects and tests each finding.
+  The HTTP reverse proxy remains explicitly `NOT READY` with no runnable network path.
+  `evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`.
+- **P0-C2D — Pre-launch settings interception live experiment.** *Not started; requires separate
+  authorization and operator-controlled state changes.* Tooling completion is not experiment
+  completion and banks no MCC request, response, certificate verdict, or endpoint observation.
+- **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
+  evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused
+  connection or that the settings service is a manifest authority.
 
 ### P0-D: Cold-boot service inventory
 Capture DNS, TLS SNI, HTTP(S), WebSocket, AMQP if present, STUN/TURN/ICE, and UDP flows from a fresh profile. Identify manifests before enumerating endpoints manually.

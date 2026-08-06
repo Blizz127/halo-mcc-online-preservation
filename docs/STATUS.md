@@ -10,11 +10,13 @@
 
 ## Accepted facts
 
-**None.**
+**No architecture hypothesis has yet been promoted to an accepted fact.**
 
-No claim currently satisfies `docs/EVIDENCE_POLICY.md` §"Claim format", which requires every
-recorded claim to cite evidence IDs. No evidence IDs exist in this repository yet: P0-A is
-repository bootstrap only and banks no retail, binary, or capture evidence.
+Evidence IDs do exist in this repository. P0-B1 through P0-C2C banked retail-build, launch,
+passive-topology, HTTPS-visibility, title-service-capture, and post-authentication-interception
+evidence under `evidence/`; their reader-facing summaries cite those IDs. P0-C2D0 additionally
+banks synthetic tooling-validation evidence. None of that evidence, by itself, completes the
+promotion requirements for an architecture hypothesis.
 
 Five entries previously listed here as accepted facts carried no evidence IDs and could not be
 traced or re-adjudicated. They were relocated to `docs/ARCHITECTURE_HYPOTHESES.md` as H-008
@@ -61,6 +63,11 @@ P0 may complete only when:
    intercept the settings service because MCC reuses a boot-time connection
    (`evidence/p0c2c_post_auth_interception/`, `docs/POST_AUTH_INTERCEPTION.md`). No MCC title-service
    exchange has been captured, and MCC certificate acceptance/pinning remains unresolved.
+   Codex Sol returned `C. REJECT — RELAY SAFETY FAILURE` for the first local **P0-C2D0 pre-launch
+   interception tooling** candidate; **P0-C2D0-R1 corrected every reported blocker using synthetic
+   tests, and a separate Meta Muse Spark 1.2 read-only audit remains pending**
+   (`evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`). The **P0-C2D live
+   experiment is not started**, and **P0-C2E manifest discovery is not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

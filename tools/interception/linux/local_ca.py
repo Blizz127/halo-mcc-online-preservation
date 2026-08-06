@@ -1,4 +1,4 @@
-"""Generate a short-lived local test CA and leaf certificate for Stage A.
+"""Generate a short-lived local test CA and leaf certificate.
 
 Everything this produces is written to a caller-supplied scratch directory that
 must live outside the repository. Private keys are written with mode 0600 and
@@ -13,14 +13,16 @@ The CA is deliberately narrow:
   extension permitting only the reserved test domain, so even if it were left
   installed it cannot vouch for a real host. (Not every TLS stack enforces name
   constraints; this is defence in depth, not a guarantee.)
-- **Reserved test names only.** Leaf certificates are issued for `.test`
-  (RFC 6761), never for a real Microsoft, Xbox, Steam, or Halo hostname.
+- **Narrow production exception.** Reserved test names are allowed for synthetic
+  validation. The only real hostname accepted is the separately selected P0-C2D
+  settings host, and only through the exact-name-constrained production mode.
 """
 
 from __future__ import annotations
 
 import datetime
 import ipaddress
+import os
 from pathlib import Path
 
 from cryptography import x509
@@ -30,15 +32,29 @@ from cryptography.x509.oid import NameOID
 
 TEST_DOMAIN = "p0c2a.test"
 DEFAULT_VALIDITY_DAYS = 2
+MAX_VALIDITY_DAYS = 2
+AUTHORIZED_PRODUCTION_HOST = "settings.svc.halowaypoint.com"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _fingerprint(cert: x509.Certificate) -> str:
     return cert.fingerprint(hashes.SHA256()).hex(":", 1)
 
 
-def _write_private(path: Path, data: bytes) -> None:
-    path.write_bytes(data)
-    path.chmod(0o600)
+def _path_has_symlink(path: Path) -> bool:
+    absolute = Path(path).absolute()
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
+def _write_exclusive(path: Path, data: bytes, mode: int) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(data)
 
 
 def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VALIDITY_DAYS,
@@ -53,20 +69,55 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
     redirect), so SNI matches the DNS SAN and the P0-C2A bare-IP rejection does
     not apply.
     """
+    if not 1 <= days <= MAX_VALIDITY_DAYS:
+        raise ValueError(f"validity must be between 1 and {MAX_VALIDITY_DAYS} days")
+
     if constrain_to_host is not None:
         # Late import keeps local_ca usable standalone in the Stage A test path.
         from exclusions import is_excluded
         target = constrain_to_host.strip().lower().rstrip(".")
         if is_excluded(target):
-            raise ValueError(f"refusing: {target} is on the exclusion denylist and may never be minted")
+            raise ValueError(
+                f"refusing: {target} is on the exclusion denylist and may never be minted"
+            )
+        if target != AUTHORIZED_PRODUCTION_HOST:
+            raise ValueError(
+                f"refusing: production certificate host must be {AUTHORIZED_PRODUCTION_HOST}"
+            )
+        if not name_constraints:
+            raise ValueError("production-host CA requires critical name constraints")
         hostname = target
+    else:
+        hostname = hostname.strip().lower().rstrip(".")
+        if not (
+            hostname.endswith(".test")
+            or hostname.endswith(".invalid")
+            or hostname == "localhost"
+        ):
+            raise ValueError("without constrain_to_host, only reserved test names are allowed")
 
     out_dir = Path(out_dir)
+    if _path_has_symlink(out_dir):
+        raise ValueError("output path may not contain a symlink")
+    resolved_parent = out_dir.parent.resolve(strict=True)
+    resolved_output = resolved_parent / out_dir.name
+    try:
+        resolved_output.relative_to(REPOSITORY_ROOT)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("certificate and key output must be outside the repository")
     out_dir.mkdir(parents=True, exist_ok=True)
+    if _path_has_symlink(out_dir) or out_dir.resolve() != resolved_output:
+        raise ValueError("output directory resolved through a symlink")
     out_dir.chmod(0o700)
+    output_names = ("ca.crt", "ca.key", "server.crt", "server.key")
+    if any((out_dir / name).exists() or (out_dir / name).is_symlink() for name in output_names):
+        raise ValueError("certificate output files must not already exist")
 
     now = datetime.datetime.now(datetime.UTC)
-    not_after = now + datetime.timedelta(days=days)
+    not_before = now - datetime.timedelta(minutes=5)
+    not_after = not_before + datetime.timedelta(days=days)
 
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     ca_name = x509.Name([
@@ -84,7 +135,7 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         .issuer_name(ca_name)
         .public_key(ca_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(now - datetime.timedelta(minutes=5))
+        .not_valid_before(not_before)
         .not_valid_after(not_after)
         .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
         .add_extension(
@@ -98,7 +149,9 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         # Key identifiers are required for chain building under OpenSSL 3.x
         # strict verification; without them a correctly-trusted CA still fails
         # with "Missing Authority Key Identifier".
-        .add_extension(x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), critical=False)
+        .add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), critical=False
+        )
         .add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False
         )
@@ -107,7 +160,10 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         # Constrain the CA to exactly the one real host it exists to observe.
         constrained_to = [hostname]
         ca_builder = ca_builder.add_extension(
-            x509.NameConstraints(permitted_subtrees=[x509.DNSName(hostname)], excluded_subtrees=None),
+            x509.NameConstraints(
+                permitted_subtrees=[x509.DNSName(hostname)],
+                excluded_subtrees=[x509.DNSName(f".{hostname}")],
+            ),
             critical=True,
         )
     elif name_constraints:
@@ -138,11 +194,13 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         .issuer_name(ca_name)
         .public_key(leaf_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(now - datetime.timedelta(minutes=5))
+        .not_valid_before(not_before)
         .not_valid_after(not_after)
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(x509.SubjectAlternativeName(leaf_sans), critical=False)
-        .add_extension(x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()), critical=False)
+        .add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()), critical=False
+        )
         .add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False
         )
@@ -152,12 +210,16 @@ def generate(out_dir: Path, hostname: str = TEST_DOMAIN, days: int = DEFAULT_VAL
         .sign(ca_key, hashes.SHA256())
     )
 
-    (out_dir / "ca.crt").write_bytes(ca_cert.public_bytes(serialization.Encoding.PEM))
-    _write_private(out_dir / "ca.key", ca_key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
-    (out_dir / "server.crt").write_bytes(leaf_cert.public_bytes(serialization.Encoding.PEM))
-    _write_private(out_dir / "server.key", leaf_key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    _write_exclusive(out_dir / "ca.crt", ca_cert.public_bytes(serialization.Encoding.PEM), 0o600)
+    _write_exclusive(out_dir / "ca.key", ca_key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()), 0o600)
+    _write_exclusive(
+        out_dir / "server.crt", leaf_cert.public_bytes(serialization.Encoding.PEM), 0o600
+    )
+    _write_exclusive(out_dir / "server.key", leaf_key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()), 0o600)
 
     return {
         "ca_subject": ca_cert.subject.rfc4514_string(),
@@ -186,13 +248,10 @@ if __name__ == "__main__":
                              "(refuses any excluded identity/auth host)")
     args = parser.parse_args()
 
-    if args.constrain_to_host is None:
-        # Reserved test domains (RFC 6761) plus "localhost", which is loopback-only
-        # and cannot be pointed at a real service.
-        if not (args.hostname.endswith(".test") or args.hostname.endswith(".invalid")
-                or args.hostname == "localhost"):
-            raise SystemExit("refusing: without --constrain-to-host, only reserved test domains are allowed")
-
-    print(json.dumps(generate(args.out_dir, args.hostname, args.days,
-                              constrain_to_host=args.constrain_to_host,
-                              name_constraints=not args.no_name_constraints), indent=2))
+    try:
+        result = generate(args.out_dir, args.hostname, args.days,
+                          constrain_to_host=args.constrain_to_host,
+                          name_constraints=not args.no_name_constraints)
+    except ValueError as exc:
+        raise SystemExit(f"refusing: {exc}") from exc
+    print(json.dumps(result, indent=2))

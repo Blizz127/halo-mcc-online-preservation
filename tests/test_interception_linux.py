@@ -100,6 +100,11 @@ def test_header_names_helper_lowercases_and_never_takes_values() -> None:
     assert all(":" not in n for n in names)
 
 
+def test_header_names_helper_redacts_opaque_or_invalid_names() -> None:
+    names = exclusions.safe_header_names(["playerABC1234567890", "bad header"])
+    assert names == ["{redacted_header_name}"]
+
+
 def test_sensitive_header_set_covers_credential_carrying_headers() -> None:
     for header in ("authorization", "cookie", "set-cookie", "proxy-authorization"):
         assert header in exclusions.SENSITIVE_HEADERS
@@ -143,10 +148,15 @@ def test_local_ca_private_keys_are_not_world_readable(tmp_path: Path) -> None:
         assert mode == 0o600, f"{name} mode {oct(mode)} must be 0600"
 
 
-def test_wine_trust_refuses_a_long_lived_ca(tmp_path: Path) -> None:
+def test_wine_trust_refuses_a_long_lived_ca(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     import local_ca
     import wine_trust
 
+    # Build a synthetic legacy certificate to prove wine_trust independently
+    # enforces the bound even if handed material from another generator.
+    monkeypatch.setattr(local_ca, "MAX_VALIDITY_DAYS", 365)
     local_ca.generate(tmp_path, hostname="p0c2a.test", days=365)
     with pytest.raises(SystemExit, match="exceeds"):
         wine_trust.install(tmp_path / "ca.crt", tmp_path, Path("/nonexistent-wine"), tmp_path)
