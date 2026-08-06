@@ -45,7 +45,10 @@ as comparison only.
 
 P0 may complete only when:
 
-1. Retail build identity is pinned and hashed.
+1. Retail build identity is pinned and hashed. **Linux/Bazzite/Proton side banked and
+   interactively confirmed** (`evidence/p0b1_bazzite_proton_build_bank/`,
+   `evidence/p0b1a_interactive_launch/`; summarized in `docs/RETAIL_BUILD_BANK.md`). **Native
+   Windows side (P0-B2) not yet banked** — this item is not complete until both platforms are.
 2. Capture tooling is validated against visible ground-truth traffic.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.

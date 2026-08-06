@@ -9,6 +9,7 @@ sys.path.insert(0, str(TOOLS_DIR))
 
 import file_inventory  # noqa: E402
 import launch_options  # noqa: E402
+import redact_process_evidence  # noqa: E402
 import steam_manifest  # noqa: E402
 import vdf  # noqa: E402
 from sanitize import Sanitizer  # noqa: E402
@@ -134,6 +135,51 @@ def test_launch_options_returns_none_when_key_absent(tmp_path: Path) -> None:
     result = launch_options.read_launch_options(steam_root, "976730")
     assert result["12345678"]["launch_options"] is None
     assert result["12345678"]["found_file"] is True
+
+
+def test_sanitizer_redacts_proton_prefix_and_steam_library() -> None:
+    sanitizer = Sanitizer(
+        mcc_install_root="/home/user/.local/share/Steam/steamapps/common/Example",
+        home="/home/user",
+        proton_prefix="/home/user/.local/share/Steam/steamapps/compatdata/123/pfx",
+        steam_library="/home/user/.local/share/Steam",
+    )
+    text = (
+        "/home/user/.local/share/Steam/steamapps/compatdata/123/pfx/user.reg "
+        "/home/user/.local/share/Steam/steamapps/common/Proton - Experimental/proton"
+    )
+    out = sanitizer.text(text)
+    assert out == "<MCC_PROTON_PREFIX>/user.reg <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/proton"
+    assert "/home/user" not in out
+
+
+def test_sanitizer_accepts_custom_account_id_placeholder() -> None:
+    sanitizer = Sanitizer(
+        mcc_install_root="",
+        home="",
+        steam_account_ids=["12345678"],
+        account_id_placeholder="<ACCOUNT_IDENTIFIER_REDACTED>",
+    )
+    assert sanitizer.text("userdata/12345678/config") == "userdata/<ACCOUNT_IDENTIFIER_REDACTED>/config"
+
+
+def test_redact_process_evidence_build_sanitizer_uses_live_environment(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(redact_process_evidence.Path, "home", classmethod(lambda cls: tmp_path))
+    userdata_dir = tmp_path / ".local" / "share" / "Steam" / "userdata" / "12345678" / "config"
+    userdata_dir.mkdir(parents=True)
+
+    sanitizer = redact_process_evidence.build_sanitizer("976730")
+    steam_root = str(tmp_path / ".local" / "share" / "Steam")
+    mcc_root = f"{steam_root}/steamapps/common/Halo The Master Chief Collection"
+
+    text = f"{mcc_root}/mcclauncher.exe {steam_root}/steamapps/compatdata/976730/pfx/user.reg userdata/12345678/x"
+    out = sanitizer.text(text)
+
+    assert "<MCC_INSTALL_ROOT>" in out
+    assert "<MCC_PROTON_PREFIX>" in out
+    assert "<ACCOUNT_IDENTIFIER_REDACTED>" in out
+    assert str(tmp_path) not in out
+    assert "12345678" not in out
 
 
 def test_launch_options_returns_value_when_present(tmp_path: Path) -> None:

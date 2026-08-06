@@ -1,0 +1,80 @@
+{
+  "rung": "P0-B1A",
+  "appid": "976730",
+  "install_dir_name": "Halo The Master Chief Collection",
+  "steam_properties": {
+    "general_tab_launch_options": {
+      "value": "empty",
+      "note": "Matches E-P0B1-005 (no LaunchOptions key found noninteractively in P0-B1)."
+    },
+    "compatibility_tab": {
+      "force_specific_tool_checked": false,
+      "forced_tool_name": null,
+      "note": "No per-title override; matches E-P0B1-002's empty CompatToolMapping finding from P0-B1."
+    },
+    "betas_tab": {
+      "branches_offered": [],
+      "raw_observation": "Only \"None\" / no beta selected; no other branch listed.",
+      "tab_present": true
+    },
+    "play_button_behavior": "Launches directly; no intermediate launch-choice menu or dropdown is shown."
+  },
+  "eac_disabled_or_mod_capable_launch": {
+    "offered_in_steam_ui": false,
+    "recorded_value": "Not observed in the current Steam launch interface.",
+    "basis": [
+      "Betas tab lists no branch besides the default.",
+      "Compatibility tab has no forced-tool override.",
+      "General tab Launch Options field is empty.",
+      "Play launches directly with no selection menu."
+    ],
+    "action_taken": "None. No second launch was performed; no command-line argument was guessed or manufactured."
+  },
+  "default_launch": {
+    "prerequisite_step_observed": {
+      "description": "Steam's standard first-run redistributable install, driven by installscript.vdf, before the game process starts.",
+      "process": "legacycompat/iscriptevaluator.exe legacycompat\\evaluatorscript_976730.vdf -> vc_redist.x86.exe /q /norestart",
+      "generic_to_steamworks": true
+    },
+    "proton_runtime_used": "Proton - Experimental",
+    "proton_runtime_matches_p0b1": true,
+    "prefix_used": "<MCC_PROTON_PREFIX>",
+    "prefix_matches_p0b1": true,
+    "process_topology_evidence_file": "evidence/p0b1a_interactive_launch/process_topology.txt",
+    "eac_process_observed": false,
+    "eac_module_observed": false,
+    "eac_observation_note": "Checked at three points (pre-launch, immediately after MCC-Win64-Shipping.exe started, and after the main menu was reached): no process and no loaded module matching eac/anticheat/easyanticheat (case-insensitive) was found, despite easyanticheat/settings.json (E-P0B1-007) shipping in the install tree and naming this same executable as its target. Only a static, point-in-time process/module check was performed; no attempt was made to enter an online match or matchmaking flow to see if EAC loads later under network play, which is out of this rung's scope.",
+    "microsoft_xbox_sign_in": {
+      "appeared": true,
+      "mode": "interactive",
+      "result": "succeeded",
+      "note": "Operator's own account was used; no email, gamertag, XUID, token, or session/cookie value was recorded at any point."
+    },
+    "main_menu_reached": true,
+    "warning_or_error_banner_observed": false,
+    "halo_reach_menu": {
+      "reachable": true,
+      "appeared_normal": true
+    },
+    "other_titles_menu_state": {
+      "appear_as_tiles": true,
+      "behavior_on_select": "not-installed / download prompt",
+      "note": "Consistent with E-P0B1-001 (only the Halo Reach depot is installed on disk; halo1-halo4 directories are empty)."
+    },
+    "online_status_indicator": "Appears online/connected; no offline banner or connectivity warning observed.",
+    "shutdown_behavior": {
+      "method": "in-game Quit/Exit to Desktop",
+      "operator_perception": "Did not close immediately; appeared to hang.",
+      "process_check_result": "By the time the process tree was re-checked, MCC-Win64-Shipping.exe, wineserver, winedevice, and the reaper/launcher chain had all exited. Only a defunct (already-terminated, awaiting reap) gameoverlayui helper process remained, which is normal Steam-overlay cleanup residue, not a hung game process.",
+      "operator_confirmed_window_gone": true,
+      "conclusion": "Shutdown was delayed/non-instant but completed without a force-kill."
+    }
+  },
+  "evidence_ids": {
+    "E-P0B1A-001": "Steam Properties observations (steam_properties above)",
+    "E-P0B1A-002": "EAC-disabled/mod-capable launch choice absence (eac_disabled_or_mod_capable_launch above)",
+    "E-P0B1A-003": "Default-launch process topology (default_launch.process_topology_evidence_file / process_topology.txt)",
+    "E-P0B1A-004": "EAC process/module absence at default launch (default_launch.eac_process_observed / eac_module_observed, cross-referenced with process_topology.txt section 3)",
+    "E-P0B1A-005": "User-visible behavior: sign-in, menu reachability, online status, shutdown (default_launch.microsoft_xbox_sign_in / main_menu_reached / halo_reach_menu / online_status_indicator / shutdown_behavior)"
+  }
+}

@@ -1,0 +1,112 @@
+P0-B1A — Bazzite interactive launch: process topology (default/normal launch)
+================================================================================
+
+Method: `ps -ef --forest` snapshots taken while the operator drove the Steam GUI
+(Play button pressed -> prerequisite install -> game running -> main menu reached),
+plus a read-only listing of module names mapped into the MCC-Win64-Shipping.exe
+process (`tr ' ' '\n' < /proc/<pid>/maps | grep -oE '[^/]+\.(exe|dll|so)$' | sort -u`).
+No process was attached to, ptraced, patched, or injected into; /proc/<pid>/maps was
+only read for its list of mapped file paths, never for memory contents.
+
+Sanitized with tools/inventory/linux/redact_process_evidence.py (derives every
+placeholder value from the live environment at run time, so no real path or
+account id is ever typed literally into the sanitizing command itself).
+
+--------------------------------------------------------------------------------
+1. Simplified hierarchy (default launch, PIDs as observed; ellipses omit
+   generic Steam client subsystems already covered by evidence/p0b1_bazzite_
+   proton_build_bank — CEF web helper, shader-cache workers, etc.)
+--------------------------------------------------------------------------------
+
+steam (PID 4306, ubuntu12_32/steam — the same Steam client process from P0-B1)
+└─ reaper "SteamLaunch AppId=976730" (PID 246325)
+   └─ SteamLinuxRuntime_4/_v2-entry-point --verb=waitforexitandrun
+      └─ pressure-vessel-wrap / pv-adverb (sandbox setup layers, PIDs 246326, 246448)
+         ├─ python3 .../"Proton - Experimental"/proton waitforexitandrun mcclauncher.exe (PID 246472)
+         │  └─ c:\windows\system32\steam.exe mcclauncher.exe (PID 246474)   [Proton's Steam-client shim, not the retail exe itself]
+         ├─ wineserver (PID 246476)
+         ├─ winedevice.exe (PID 246484)
+         ├─ winedevice.exe (PID 246510)
+         ├─ xalia.exe (PID 246576)   [Proton accessibility helper, ships with Proton]
+         ├─ xalia.exe (PID 246693)   [second instance, same role]
+         └─ MCC-Win64-Shipping.exe (PID 246608)   <-- the actual retail game process
+
+gameoverlayui (PID 246837, sibling of the reaper tree, direct child of steam PID 4306)
+  -pid 246608 -steampid 4306 -manuallyclearframes 0 -gameid 976730
+
+Pre-launch step observed before the above (first run of this session only):
+steam.exe legacycompat/iscriptevaluator.exe legacycompat\evaluatorscript_976730.vdf
+  -> ran S:\common\Steamworks Shared\_CommonRedist\vcredist\2017\vc_redist.x86.exe /q /norestart
+  (Steam's standard first-run prerequisite-redistributable install step, driven by
+  <MCC_INSTALL_ROOT>/installscript.vdf; this is generic Steamworks behavior, not
+  specific to MCC or to any launch-mode choice.)
+
+No process named or containing "EAC"/"EasyAntiCheat"/"anticheat" (case-insensitive)
+appeared anywhere in this tree at any point observed: not during the prerequisite
+step, not during MCC-Win64-Shipping.exe startup, and not once the main menu was
+reached. See launch_observations.json for the corresponding claim and confidence.
+
+--------------------------------------------------------------------------------
+2. Raw sanitized `ps -ef --forest` extract (MCC/Proton/wine-relevant lines only;
+   unrelated system processes filtered out; taken shortly after MCC-Win64-
+   Shipping.exe started and remained the same through the main menu)
+--------------------------------------------------------------------------------
+
+root         170       2  0 13:47 ?        00:00:00  \_ [oom_reaper]
+blizz       4369    4306  0 13:47 ?        00:00:00  |   |           \_ <STEAM_LIBRARY>/steamrt64/pv-runtime/steam-runtime-steamrt/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap --args 26 /usr/lib/pressure-vessel/from-host/libexec/steam-runtime-tools-0/pv-adverb --prefix=/usr/lib/pressure-vessel/from-host --generate-locales --fd 11 --regenerate-ld.so-cache /var/pressure-vessel/ldso --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu --set-ld-library-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu/aliases:/usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu/aliases --overrides-path /usr/lib/pressure-vessel/overrides --assign-fd=1=3 --assign-fd=2=4 --ld-preload=/run/host/usr/lib/extest/libextest.so -- <STEAM_LIBRARY>/ubuntu12_64/steamwebhelper_sniper_wrap.sh -nocrashdialog -lang=en_US -cachedir=<STEAM_LIBRARY>/config/htmlcache -steampid=4306 -buildid=1785799196 -steamid=0 -logdir=<STEAM_LIBRARY>/logs -uimode=7 -startcount=0 -steamuniverse=Public -realm=Global -clientui=<STEAM_LIBRARY>/clientui -steampath=<STEAM_LIBRARY>/ubuntu12_32/steam -launcher=0 -use_xcomposite_workaround --valve-initial-threadpool-size=20 --valve-enable-site-isolation --enable-smooth-scrolling --password-store=basic --log-file=<STEAM_LIBRARY>/logs/cef_log.txt --disable-quick-menu --disable-component-update --gaia-url=http://disabled.invalid --enable-features=PlatformHEVCDecoderSupport --disable-features=WinRetrieveSuggestionsOnlyOnDemand,SpareRendererForSitePerProcess,DcheckIsFatal,BlockPromptsIfIgnoredOften,WebUsbDeviceDetection,ValveFFmpegAllowLowDelayHEVC
+blizz     246325    4306  0 20:01 ?        00:00:00  |   |           \_ <STEAM_LIBRARY>/ubuntu12_32/reaper SteamLaunch AppId=976730 -- <STEAM_LIBRARY>/steamapps/common/SteamLinuxRuntime_4/_v2-entry-point --verb=waitforexitandrun -- <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/proton waitforexitandrun <MCC_INSTALL_ROOT>/mcclauncher.exe
+blizz     246326  246325  1 20:01 ?        00:00:00  |   |           |   \_ <STEAM_LIBRARY>/steamapps/common/SteamLinuxRuntime_4/pressure-vessel/libexec/steam-runtime-tools-0/srt-bwrap --args 26 /usr/lib/pressure-vessel/from-host/libexec/steam-runtime-tools-0/pv-adverb --prefix=/usr/lib/pressure-vessel/from-host --generate-locales --fd 12 --regenerate-ld.so-cache /var/pressure-vessel/ldso --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu --set-ld-library-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu/aliases:/usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu/aliases --overrides-path /usr/lib/pressure-vessel/overrides --assign-fd=1=3 --assign-fd=2=4 --ld-preload=/run/host/usr/lib/extest/libextest.so --ld-preload=<STEAM_LIBRARY>/ubuntu12_32/gameoverlayrenderer.so --ld-preload=<STEAM_LIBRARY>/ubuntu12_64/gameoverlayrenderer.so -- <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/proton waitforexitandrun <MCC_INSTALL_ROOT>/mcclauncher.exe
+blizz     246448  246326  0 20:01 ?        00:00:00  |   |           |       \_ /usr/lib/pressure-vessel/from-host/libexec/steam-runtime-tools-0/pv-adverb --prefix=/usr/lib/pressure-vessel/from-host --generate-locales --fd 12 --regenerate-ld.so-cache /var/pressure-vessel/ldso --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu --add-ld.so-path /usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu --set-ld-library-path /usr/lib/pressure-vessel/overrides/lib/x86_64-linux-gnu/aliases:/usr/lib/pressure-vessel/overrides/lib/i386-linux-gnu/aliases --overrides-path /usr/lib/pressure-vessel/overrides --assign-fd=1=3 --assign-fd=2=4 --ld-preload=/run/host/usr/lib/extest/libextest.so --ld-preload=<STEAM_LIBRARY>/ubuntu12_32/gameoverlayrenderer.so --ld-preload=<STEAM_LIBRARY>/ubuntu12_64/gameoverlayrenderer.so -- <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/proton waitforexitandrun <MCC_INSTALL_ROOT>/mcclauncher.exe
+blizz     246472  246448  0 20:01 ?        00:00:00  |   |           |           \_ python3 <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/proton waitforexitandrun <MCC_INSTALL_ROOT>/mcclauncher.exe
+blizz     246474  246472  0 20:01 ?        00:00:00  |   |           |           |   \_ c:\windows\system32\steam.exe <MCC_INSTALL_ROOT>/mcclauncher.exe
+blizz     246476  246448  6 20:01 ?        00:00:03  |   |           |           \_ <STEAM_LIBRARY>/steamapps/common/Proton - Experimental/files/lib/wine/../../bin/wineserver
+blizz     246484  246448  0 20:01 ?        00:00:00  |   |           |           \_ C:\windows\system32\winedevice.exe
+blizz     246510  246448  2 20:01 ?        00:00:01  |   |           |           \_ C:\windows\system32\winedevice.exe
+blizz     246576  246448  4 20:01 ?        00:00:02  |   |           |           \_ \\?\S:\common\Proton - Experimental\files\share\wine/../xalia/xalia.exe
+blizz     246608  246448 99 20:01 ?        00:01:09  |   |           |           \_ S:\common\Halo The Master Chief Collection\MCC\Binaries\Win64\MCC-Win64-Shipping.exe
+blizz     246693  246448  4 20:01 ?        00:00:02  |   |           |           \_ \\?\S:\common\Proton - Experimental\files\share\wine/../xalia/xalia.exe
+blizz     246837    4306  2 20:01 ?        00:00:01  |   |           \_ <STEAM_LIBRARY>/ubuntu12_32/gameoverlayui -pid 246608 -steampid 4306 -manuallyclearframes 0 -gameid 976730
+
+--------------------------------------------------------------------------------
+3. Modules mapped into MCC-Win64-Shipping.exe at the main menu (filenames only;
+   already contain no path — no sanitization needed for this section)
+--------------------------------------------------------------------------------
+
+advapi32.dll, apisetschema.dll, audioses.dll, avrt.dll, bcrypt.dll, bcrypt.so,
+bink2w64.dll, Bink2W64_UE.dll, binkpluginw64.dll, cell_release_x64_4_0.dll,
+cfgmgr32.dll, chrome_elf.dll, combase.dll, comctl32_v6.dll, comdlg32.dll,
+coml2.dll, compstui.dll, concrt140.dll, credui.dll, crypt32.dll, crypt32.so,
+cryptbase.dll, cryptnet.dll, cryptsp.dll, cryptui.dll, d3d11.dll, d3d12.dll,
+d3d9.dll, d3dcompiler_47.dll, dbghelp.dll, dhcpcsvc.dll, dnsapi.dll, dnsapi.so,
+dsound.dll, dwmapi.dll, dwrite.dll, dwrite.so, dxgi.dll, dxva2.dll,
+EOSSDK-Win64-Shipping.dll, explorerframe.dll, GameOverlayRenderer64.dll,
+gameoverlayrenderer.so, gameux.dll, gdi32.dll, GFSDK_Aftermath_Lib.x64.dll,
+halonetworklayer_ship.dll, haloreach.dll, hid.dll, imagehlp.dll, imm32.dll,
+iphlpapi.dll, jsproxy.dll, kerberos.dll, kerberos.so, kernel32.dll,
+kernelbase.dll, libcef.dll, libEGL.dll, libGLESv2.dll, liblz4.dll,
+libpulsecommon-17.0.so, libSPIRV-Tools.so, libVkLayer_MESA_device_select.so,
+libVkLayer_steam_fossilize.so, libvulkan_dzn.so, libvulkan_intel.so,
+libvulkan_lvp.so, localspl.dll, localspl.so, lsteamclient.dll, lsteamclient.so,
+MCC-Win64-Shipping.exe, mf.dll, mfplat.dll, mfplay.dll, mfreadwrite.dll,
+mmdevapi.dll, mpr.dll, msacm32.dll, msctf.dll, msv1_0.dll, msv1_0.so,
+msvcp140.dll, msvcrt.dll, mswsock.dll, ncrypt.dll, netapi32.dll, netapi32.so,
+netprofm.dll, netutils.dll, normaliz.dll, nsi.dll, ntdll.dll, ntdll.so,
+nvapi64.dll, ole32.dll, oleacc.dll, oleaut32.dll, opengl32.dll, opengl32.so,
+PartyWin.dll, PhysX3Common_x64.dll, PhysX3_x64.dll, propsys.dll, psapi.dll,
+PxFoundation_x64.dll, PxPvdSDK_x64.dll, rpcrt4.dll, rsaenh.dll, rtworkq.dll,
+schannel.dll, sechost.dll, secur32.dll, secur32.so, setupapi.dll, shcore.dll,
+shell32.dll, shlwapi.dll, simplenetworklibrary-x64-release.dll, spoolss.dll,
+sspicli.dll, steam_api64.dll, steamclient64.dll, steamclient.so,
+steamoverlayvulkanlayer.so, ucrtbase.dll, uiautomationcore.dll, urlmon.dll,
+user32.dll, userenv.dll, usp10.dll, UTF-32.so, uxtheme.dll, vcruntime140_1.dll,
+vcruntime140.dll, version.dll, wevtapi.dll, win32u.dll, win32u.so,
+windowscodecs.dll, windows.media.devices.dll, windows.ui.dll, winealsa.so,
+wineopenxr.dll, wineopenxr.so, wineps.so, winepulse.so, winevulkan.dll,
+winevulkan.so, winex11.so, winhttp.dll, wininet.dll, winmm.dll, winspool.so,
+wintrust.dll, wlanapi.dll, wldap32.dll, ws2_32.dll, ws2_32.so, wtsapi32.dll,
+xaudio2_8.dll, xaudio2_9.dll, xaudio2_9redist.dll, xinput1_3.dll, xinput1_4.dll
+
+No module with "eac", "anticheat", or "easyanticheat" in its name (case-
+insensitive) is present in this list, despite easyanticheat/settings.json
+(banked under E-P0B1-007) shipping in the install tree and naming
+MCC-Win64-Shipping.exe as its target executable.

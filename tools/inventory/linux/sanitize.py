@@ -14,30 +14,54 @@ MCC_INSTALL_ROOT_PLACEHOLDER = "<MCC_INSTALL_ROOT>"
 HOME_PLACEHOLDER = "<HOME>"
 STEAM_ACCOUNT_ID_PLACEHOLDER = "<STEAM_ACCOUNT_ID>"
 STEAMID64_PLACEHOLDER = "<STEAMID64>"
+MCC_PROTON_PREFIX_PLACEHOLDER = "<MCC_PROTON_PREFIX>"
+STEAM_LIBRARY_PLACEHOLDER = "<STEAM_LIBRARY>"
 
 _STEAMID64_RE = re.compile(r"\b7656119\d{10}\b")
+
+
+def _variants(value: str | list[str] | None) -> list[str]:
+    if not value:
+        return []
+    values = [value] if isinstance(value, str) else list(value)
+    # A symlinked $HOME (e.g. /home/<user> -> /var/home/<user> on ostree-based
+    # distros) means the same real path may appear on disk/in argv in either
+    # form; replace the longer/more specific form first so a shared prefix
+    # can't shadow it (see length-descending sort at each call site below).
+    return sorted({v.rstrip("/") for v in values if v}, key=len, reverse=True)
 
 
 class Sanitizer:
     """Replaces known-sensitive substrings with stable placeholders.
 
-    Order matters: the MCC install root is replaced before the home
-    directory, since the install root is itself nested under home and would
-    otherwise never match once the shorter prefix is gone.
+    Order matters: the most specific (longest, most deeply nested) paths are
+    replaced first, since a shorter parent-path replacement would otherwise
+    shadow part of a longer child path and leave a stray fragment behind.
+    Nesting here, most to least specific: `mcc_install_root` and
+    `proton_prefix` (siblings under the Steam library) > `steam_library` >
+    `home` (steam_library's parent).
     """
 
-    def __init__(self, mcc_install_root: str, home: str | list[str], steam_account_ids: list[str] | None = None):
+    def __init__(
+        self,
+        mcc_install_root: str | list[str],
+        home: str | list[str],
+        steam_account_ids: list[str] | None = None,
+        proton_prefix: str | list[str] | None = None,
+        steam_library: str | list[str] | None = None,
+        account_id_placeholder: str = STEAM_ACCOUNT_ID_PLACEHOLDER,
+    ):
         self._replacements: list[tuple[str, str]] = []
-        if mcc_install_root:
-            self._replacements.append((mcc_install_root.rstrip("/"), MCC_INSTALL_ROOT_PLACEHOLDER))
+        for variant in _variants(mcc_install_root):
+            self._replacements.append((variant, MCC_INSTALL_ROOT_PLACEHOLDER))
+        for variant in _variants(proton_prefix):
+            self._replacements.append((variant, MCC_PROTON_PREFIX_PLACEHOLDER))
         for account_id in steam_account_ids or []:
-            self._replacements.append((f"/userdata/{account_id}/", f"/userdata/{STEAM_ACCOUNT_ID_PLACEHOLDER}/"))
-            self._replacements.append((account_id, STEAM_ACCOUNT_ID_PLACEHOLDER))
-        # A symlinked $HOME (e.g. /home/<user> -> /var/home/<user> on ostree-based
-        # distros) means paths on disk may be observed in either form; replace the
-        # longer/more specific form first so a shared prefix can't shadow it.
-        home_variants = [home] if isinstance(home, str) else list(home)
-        for variant in sorted({v.rstrip("/") for v in home_variants if v}, key=len, reverse=True):
+            self._replacements.append((f"/userdata/{account_id}/", f"/userdata/{account_id_placeholder}/"))
+            self._replacements.append((account_id, account_id_placeholder))
+        for variant in _variants(steam_library):
+            self._replacements.append((variant, STEAM_LIBRARY_PLACEHOLDER))
+        for variant in _variants(home):
             self._replacements.append((variant, HOME_PLACEHOLDER))
 
     def text(self, value: str) -> str:
