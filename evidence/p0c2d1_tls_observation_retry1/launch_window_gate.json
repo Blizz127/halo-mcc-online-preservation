@@ -1,0 +1,16 @@
+{
+  "format": "p0c2d1r1-launch-window-v1",
+  "evidence_id": "E-P0C2D1R1LIVE-005",
+  "observer_alive": true,
+  "listener_ready": true,
+  "run_identity_valid": true,
+  "runtime_metadata_valid": true,
+  "configured_timeout_seconds": 240.0,
+  "elapsed_seconds": 51.106,
+  "remaining_seconds": 188.894,
+  "minimum_required_seconds": 150.0,
+  "safe_to_launch": true,
+  "failure_reasons": [],
+  "steam_launch_issued_immediately_after_gate": true,
+  "steam_launch_started": "2026-08-06T17:20:33-05:00"
+}

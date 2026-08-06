@@ -1,0 +1,61 @@
+P0-C2D1 retry 1 rollback and restoration verification
+=====================================================
+
+Evidence ID: E-P0C2D1R1LIVE-007
+
+Classification
+--------------
+  PASS classified A. TLS CERTIFICATE ACCEPTED
+  PASS observer contacted eight times with exact SNI
+  PASS every TLS handshake completed
+  PASS every observation contained post-handshake application data
+  PASS no pinning claim made beyond the observed local-CA acceptance
+
+Exact /etc/hosts rollback
+-------------------------
+  PASS exact prior bytes restored
+  PASS SHA-256 restored:
+       58ab06ea4280182a38c8176bc4eda7d83815cc08aec9e9ed082a71a47eebf28b
+  PASS size restored: 604 bytes
+  PASS inode preserved: 4621125
+  PASS mode restored: 0644
+  PASS P0-C2D sentinel absent
+  PASS exact selected-host entry absent
+  PASS selected and all six protected hosts resolve normally
+
+Observer cleanup
+----------------
+  PASS observer stopped at the configured eight-connection cap
+  PASS exit_reason: connection_cap_reached
+  PASS ready file removed
+  PASS PID file removed
+  PASS 127.0.0.77:443 closed
+  PASS no observer, relay, reverse-proxy, or metadata-proxy process remained
+
+Prefix trust and certificate cleanup
+------------------------------------
+  PASS exact CA thumbprint removed from the MCC Proton-Wine Root store
+  PASS post-delete Wine query reported absent
+  PASS independent read-only system.reg parse reported absent
+  PASS host OS trust store was never modified
+  PASS temporary CA, leaf, and private-key files removed
+
+Restoration launch
+------------------
+  PASS normal Steam/MCC launch started at 2026-08-06T17:24:42-05:00
+  PASS Microsoft/Xbox identity succeeded
+  PASS MCC main menu loaded
+  PASS no certificate or service error appeared
+  PASS MCC and Steam shut down cleanly
+  PASS no project CA, redirect, listener, control, or interception process remained
+
+Scope and privacy boundary
+--------------------------
+  PASS the observer did not emulate a Halo service or return an upstream response
+  PASS reverse proxy and application-layer forwarding were not used
+  PASS no body, header value, token, cookie, account datum, raw TLS, or packet capture retained
+  PASS certificate and scratch locations use placeholders in committed evidence
+  NOTE stats/store were unavailable during the observer-only launch because no service response
+       was generated; normal service operation returned after rollback
+  NOTE an unrelated non-MCC UMU/Wine workload appeared after preflight; it was not touched and no
+       private path or account detail from it is retained

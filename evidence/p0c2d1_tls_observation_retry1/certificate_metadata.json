@@ -1,0 +1,31 @@
+{
+  "format": "p0c2d1-retry1-certificate-metadata-v1",
+  "evidence_id": "E-P0C2D1R1LIVE-002",
+  "generated_at": "2026-08-06T17:02:08-05:00",
+  "scratch_path_recorded": "<LOCAL_SCRATCH>/p0c2d1-live",
+  "scratch_outside_repository": true,
+  "symlinks": false,
+  "directory_mode": "0o700",
+  "file_modes": "0o600",
+  "ca_subject": "O=halo-mcc-online-preservation,CN=P0-C2A Local Test CA (DO NOT TRUST)",
+  "ca_sha1_thumbprint": "176FA8BC66A9F854CCD728697E6F1CB1751FE2F7",
+  "ca_sha256_fingerprint": "0c:f9:e3:8d:db:84:d6:e0:31:2f:f1:66:87:eb:5c:1e:5e:95:0a:c3:87:1b:d4:84:57:8f:36:9b:b3:fd:72:75",
+  "ca_not_before": "2026-08-06T21:57:08+00:00",
+  "ca_not_after": "2026-08-08T21:57:08+00:00",
+  "ca_name_constraints_permitted_dns": [
+    "settings.svc.halowaypoint.com"
+  ],
+  "ca_name_constraints_excluded_dns": [
+    ".settings.svc.halowaypoint.com"
+  ],
+  "leaf_sha256_fingerprint": "ed:72:65:10:19:8c:04:a6:67:b2:ed:9e:ef:1e:64:9c:21:07:6a:7e:c2:3d:d0:c3:19:f8:25:74:09:4c:24:c5",
+  "leaf_not_before": "2026-08-06T21:57:08+00:00",
+  "leaf_not_after": "2026-08-08T21:57:08+00:00",
+  "leaf_san_dns_names": [
+    "settings.svc.halowaypoint.com"
+  ],
+  "leaf_key_matched_certificate": true,
+  "certificate_bodies_recorded": false,
+  "private_keys_recorded": false,
+  "all_ca_leaf_and_key_files_removed_after_verified_trust_removal": true
+}

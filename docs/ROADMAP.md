@@ -58,15 +58,16 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   separate normal launch succeeded (`E-P0C2D-001` through `E-P0C2D-005`,
   `evidence/p0c2d_live_blind_relay/`). This proves transport and pre-launch reachability only; it
   does not establish plaintext, schema, settings authority, CA acceptance, or pinning.
-- **P0-C2D1 — Exact-host TLS/SNI/ALPN observation live experiment.** *Incomplete; latest live
-  attempt classified `E. SNI / OBSERVER CONTRACT FAILURE`.* The earlier attempt halted before live
-  action and led to R0. In the later authorized attempt, the exact-host certificate, prefix-only
-  trust, observer readiness, and one-host redirect scope all passed their gates, but coordination
-  latency consumed the 240-second observer window. The observer recorded `total_deadline`, 240.103 s,
-  and zero observations; Steam launch was issued after expiry, so this is not `D. OBSERVER NOT
-  CONTACTED` and proves nothing about MCC certificate acceptance, SNI, ALPN, or pinning. Exact hosts
-  rollback, trust removal, certificate deletion, and normal post-rollback operation all succeeded.
-  `E-P0C2D1-001` through `E-P0C2D1-006`, `evidence/p0c2d1_tls_observation/`.
+- **P0-C2D1 — Exact-host TLS/SNI/ALPN observation live experiment.** *Complete for the bounded
+  certificate-acceptance question: `A. TLS CERTIFICATE ACCEPTED`.* The historical attempt remains
+  classified `E. SNI / OBSERVER CONTRACT FAILURE` because its observer expired before launch.
+  Retry 1 used the accepted remaining-runtime gate and launched with 188.894 seconds left. MCC made
+  eight exact-SNI TLS 1.2 connections using `ECDHE-RSA-AES256-GCM-SHA384`, negotiated no ALPN, and
+  sent application data after every handshake. Exact hosts rollback, trust removal, certificate
+  deletion, and normal post-rollback operation all succeeded. The observer supplied no service
+  response, so this is certificate-acceptance evidence, not a working server or passthrough result.
+  `E-P0C2D1R1LIVE-001` through `E-P0C2D1R1LIVE-007`,
+  `evidence/p0c2d1_tls_observation_retry1/`.
 - **P0-C2D1-R0 — TLS observer live-bounds correction.** *Complete; synthetic validation only.* The
   observer's `MAX_SECONDS` was 120 s, a synthetic-era value never reconciled with live launch
   behaviour, while the measured redirect-verify-to-connect interval alone is 75 s (`E-P0C2D-004`)
@@ -85,7 +86,8 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   observer/listener identity and at least 150 seconds remaining, and a machine-recorded direct
   baseline decision requiring identity, main-menu, error-free, and clean-shutdown assertions. A
   failed launch-window decision mandates rollback without starting Steam/MCC and is classified as a
-  pre-launch safety abort. No new live retry started. P0-C2D1 remains incomplete.
+  pre-launch safety abort. The later retry used this gate successfully; R1 remains a synthetic
+  tooling correction and commit `ed9e323` remains the unchanged historical failed-window record.
   `evidence/p0c2d1r1_remaining_runtime_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`.
 - **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
   evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused

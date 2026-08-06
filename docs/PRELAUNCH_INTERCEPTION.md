@@ -4,9 +4,10 @@ Status: **P0-C2D0-R2 corrected the live-contract gaps, and the separately author
 single-host blind-relay rung completed as `A. BLIND RELAY PASS`. The follow-on P0-C2D1 TLS/SNI/ALPN
 observation first halted before live action; P0-C2D1-R0 corrected its bounds. A later live attempt
 ended `E. SNI / OBSERVER CONTRACT FAILURE` because setup consumed the observer window and launch
-was issued after expiry. P0-C2D1-R1 now adds a fail-closed remaining-runtime gate and explicit
-direct-baseline contract under synthetic validation. No MCC TLS verdict exists, and no new live
-retry has started. A separate Meta Muse Spark 1.2 read-only audit of P0-C2D0 remains pending.**
+was issued after expiry. P0-C2D1-R1 added a fail-closed remaining-runtime gate and explicit direct-
+baseline contract. Retry 1 passed that gate and completed as `A. TLS CERTIFICATE ACCEPTED`: eight
+exact-SNI TLS 1.2 handshakes carried post-handshake application data. No upstream response or server
+emulation occurred. A separate Meta Muse Spark 1.2 read-only audit of P0-C2D0 remains pending.**
 
 R1 corrected every blocker from the Codex Sol adversarial audit (`C. REJECT — RELAY SAFETY FAILURE`
 on the first local candidate). R2 corrects a different class of problem: the tooling obeyed its
@@ -265,6 +266,28 @@ and record a pre-launch safety abort, never `D. OBSERVER NOT CONTACTED`. A new r
 authorized work; R1 does not create its scratch, certificate, trust, observer, redirect, or client
 state.
 
+## Retry 1 live result — P0-C2D1
+
+`evidence/p0c2d1_tls_observation_retry1/` records the accepted retry
+(`E-P0C2D1R1LIVE-001` through `E-P0C2D1R1LIVE-007`). The direct cached-identity baseline passed and
+shut down cleanly. Fresh exact-host material passed the final preflight and was installed only into
+the MCC Proton-Wine Root store. The observer published matching owned controls on
+`127.0.0.77:443`; the redirect affected exactly one host and preserved all six protected identity
+hosts.
+
+The mandatory gate returned `observer_alive`, `listener_ready`, `run_identity_valid`,
+`runtime_metadata_valid`, and `safe_to_launch` all true, with 188.894 seconds remaining against the
+150-second minimum. Steam launch followed immediately. MCC made eight exact-SNI TLS 1.2 connections
+using `ECDHE-RSA-AES256-GCM-SHA384`, negotiated no ALPN, and sent application data after every
+handshake. This is `A. TLS CERTIFICATE ACCEPTED`.
+
+The observer was deliberately not a server: it forwarded nothing and returned no application
+response, so stats/store were unavailable during the redirected launch. Immediate exact rollback
+restored hosts bytes/hash/size/inode, removed the listener and controls, verified the exact CA absent,
+deleted all temporary certificate/key material, and was followed by a successful normal restoration
+launch. The result supports proposing a separately authorized bounded application-layer passthrough
+rung; it does not make the current reverse proxy ready.
+
 ## Phase boundary
 
 P0-C2D0-R2 establishes only that the preflight, probe, and relay bounds now match the live rung's
@@ -272,9 +295,9 @@ authorized state and scope, under synthetic validation. It establishes no MCC re
 TLS acceptance or pinning verdict, settings manifest, endpoint authority, or production forwarding
 behaviour, and it changes no architecture hypothesis.
 
-**P0-C2D is complete. P0-C2D1 remains incomplete after an E-class lifecycle failure; R1 corrects
-the timeout hazard synthetically, but a new live retry is unstarted. P0-C2E is not started.**
-P0-C2D's opaque-transport result still supports a separately authorized retry, but the P0-C2D1
-attempt observed no MCC TLS behavior and authorizes neither another run nor application-layer
-passthrough. Certificate acceptance and pinning remain unresolved. The corrected tooling still
-awaits the separate Meta Muse Spark 1.2 read-only audit noted above.
+**P0-C2D and the bounded P0-C2D1 certificate-acceptance question are complete. P0-C2E is not
+started.** Retry 1 proves that the tested MCC/Proton path accepts the short-lived, prefix-trusted,
+exact-host certificate sufficiently to send application data. It does not prove a working service,
+safe upstream forwarding, response compatibility, or absence of every possible pinning mechanism.
+Any passthrough rung remains separately authorized; `reverse_proxy.py` remains `NOT READY`. The
+corrected tooling still awaits the separate Meta Muse Spark 1.2 read-only audit noted above.

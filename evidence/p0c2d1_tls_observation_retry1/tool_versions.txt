@@ -1,0 +1,35 @@
+P0-C2D1 retry 1 tool and host versions
+=======================================
+
+Environment
+-----------
+  os             Bazzite 44
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+  python3        Python 3.14.6
+  pytest         pytest 9.1.1
+  cryptography   49.0.0
+  git            git version 2.55.0
+  openssl        OpenSSL 3.5.7 9 Jun 2026
+
+Starting repository state
+-------------------------
+  branch          main
+  HEAD            ff1dbd20a267b1e291c942485294a4b6d6708d9e
+  origin/main     ff1dbd20a267b1e291c942485294a4b6d6708d9e
+  behind / ahead  0 / 0
+  tree            clean; no nonignored untracked files
+
+Project tool SHA-256
+--------------------
+  p0c2d_preflight.py  f152c84790c2be7fb86f514aa5a60307c53e6a65d80ffafcdc5c0b5a251c3960
+  local_ca.py         a1835ceeca97a4a66301f8550300596bb019703e7014bc3bafc5cdcc75d3d6b5
+  wine_trust.py       1d7d1b112bf1c72a27b47a8aafbb4da3fb756170df178392e6d06d57ff5aef14
+  tls_observer.py     b420dd4c2b37014547cdce87ace152fabd8e726019e803782d20274c80d8d280
+  host_redirect.py    7ccf6d21941642e952679d44ab341334787557b1359c1db8357d829bd72fbeb0
+
+Privilege and coordination boundary
+-----------------------------------
+  The operator authenticated through the desktop PolicyKit agent. The first relative-path observer
+  invocation exited before opening a listener or creating controls because the privileged working
+  directory differed. The successful observer used the same accepted tool by absolute path. No
+  redirect was installed until its owned ready state and exact listener were verified.

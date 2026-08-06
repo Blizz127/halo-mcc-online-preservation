@@ -89,8 +89,16 @@ P0 may complete only when:
    (`E-P0C2D1-006`). **P0-C2D1-R1** preserves that partial-live outcome-E record and corrects its
    procedural hazard under synthetic validation: owned observer start/deadline metadata, a
    fail-closed 150-second minimum-remaining-runtime launch decision, and machine-recorded direct
-   baseline assertions. No new live retry occurred. P0-C2D1 remains incomplete, MCC certificate
-   acceptance/pinning remains **unresolved**, and **P0-C2E manifest discovery remains not started**.
+   baseline assertions. The subsequent accepted retry passed that gate with 188.894 seconds
+   remaining and completed as **`A. TLS CERTIFICATE ACCEPTED`**: MCC made eight exact-SNI TLS 1.2
+   connections, negotiated no ALPN, and sent application data after every handshake using the fresh
+   prefix-trusted exact-host certificate (`E-P0C2D1R1LIVE-001` through `E-P0C2D1R1LIVE-007`,
+   `evidence/p0c2d1_tls_observation_retry1/`). The observer did not emulate the service or return an
+   upstream response, so stats/store were unavailable during interception; exact rollback, trust
+   removal, certificate deletion, and a separate normal restoration launch all passed. P0-C2D1 is
+   complete for the certificate-acceptance question on this tested path. Application-layer
+   passthrough remains separately gated and the reverse proxy remains `NOT READY`; **P0-C2E manifest
+   discovery remains not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

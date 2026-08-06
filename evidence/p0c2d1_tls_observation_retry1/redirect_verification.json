@@ -1,0 +1,25 @@
+{
+  "format": "p0c2d1-retry1-redirect-verification-v1",
+  "evidence_id": "E-P0C2D1R1LIVE-004",
+  "selected_hostname": "settings.svc.halowaypoint.com",
+  "authorized_address": "127.0.0.77",
+  "authorized_line_count": 1,
+  "sentinel_count": 1,
+  "selected_ipv4": [
+    "127.0.0.77"
+  ],
+  "selected_ipv6": [],
+  "selected_points_only_at_observer": true,
+  "identity_host_count": 6,
+  "identity_hosts_global_nonlocal": true,
+  "identity_hosts_unaffected": true,
+  "observer_listener_seen_during_scope_verification": true,
+  "observer_ready_during_scope_verification": true,
+  "hosts_inode_before": 4621125,
+  "hosts_inode_during": 4621125,
+  "hosts_inode_preserved": true,
+  "hosts_size_before": 604,
+  "hosts_size_during": 699,
+  "rollback_payload_prepared_before_launch_gate": true,
+  "rollback_verified": true
+}

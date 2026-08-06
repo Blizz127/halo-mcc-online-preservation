@@ -1,0 +1,16 @@
+{
+  "format": "p0c2d1r1-direct-baseline-v1",
+  "evidence_id": "E-P0C2D1R1LIVE-001",
+  "launch_started": "2026-08-06T16:58:48-05:00",
+  "operator_confirmation": "2026-08-06T17:00:24-05:00",
+  "shutdown_verified": "2026-08-06T17:01:10-05:00",
+  "launch_path": "normal Steam launch; Launch Options unchanged and proxy-free",
+  "steam_launched_normally": true,
+  "mcc_launched_normally": true,
+  "sign_in_mode": "cached",
+  "identity_success": true,
+  "main_menu_success": true,
+  "certificate_or_service_error": false,
+  "clean_shutdown": true,
+  "account_identifiers_recorded": false
+}
