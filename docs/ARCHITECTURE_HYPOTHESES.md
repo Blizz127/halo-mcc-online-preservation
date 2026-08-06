@@ -10,7 +10,7 @@ Every material claim must be tracked here before it becomes architecture.
 | H-004 | MPSD is used for target MCC sessions | Unproven | Xbox service calls and session documents tied to a controlled lifecycle | Determines whether a compatible session-directory service is needed |
 | H-005 | Plain routable endpoints can replace platform secure addresses | Unproven | Two-client capture and controlled substitution test | Determines transport implementation scale |
 | H-006 | MCC dedicated allocation can fall back to peer host | Partially supported | Official incident behavior plus reproducible retail observation | Provides a bounded fallback if UDS is unavailable |
-| H-007 | Proxy-based TLS capture is sufficient | **Narrowed — no path yet observes a title-service exchange** (P0-C2B, P0-C2C) | Wireshark-visible request also appears decrypted in proxy capture | Determines whether transparent interception is needed |
+| H-007 | Proxy-based TLS capture is sufficient | **Narrowed — pre-launch exact-host blind transport works; decryption remains unproven** (P0-C2B, P0-C2C, P0-C2D) | Wireshark-visible request also appears decrypted in proxy capture | Determines whether transparent interception is needed |
 | H-008 | MCC uses dedicated servers for matchmade games and Custom Game Browser sessions | Unproven | Retail capture of one matchmade and one CGB session showing server allocation and the resulting connection | Determines which modes require a server-side host substitute |
 | H-009 | MCC modes outside matchmaking and CGB can run on a peer-hosted session | Unproven | Retail capture of a custom game or campaign co-op showing a client acting as host | Bounds how much of the target surface can avoid dedicated hosting; overlaps H-006 |
 | H-010 | The MCC dedicated-server application is a "Unified Dedicated Server" (UDS) — a wrapper that configures and launches server builds of MCC games | Unproven | Cited official primary source, or binary/retail observation of the wrapper and its launch contract | Defines what any self-hosted server would have to match; prerequisite framing for H-001 |
@@ -34,7 +34,7 @@ have to rediscover them, and so nobody mistakes "endpoint exists" for "hypothesi
 | H-008 | QoS probing on UDP/3075 across 15 Azure regions during launch and menus (`E-P0C1-006`) | Consistent with regional server selection, but no allocation, assignment, or match was observed. Attribution here is by destination address, not process ownership |
 | H-012 | Anti-cheat module CDN contacted by the launcher (`E-P0C1-008`), while `E-P0B1A-004` recorded no EAC process or module | Both facts stand; neither resolves the other. Module delivery is not proof of enforcement |
 
-## P0-C2B / P0-C2C narrowing of H-007
+## P0-C2B / P0-C2C / P0-C2D narrowing of H-007
 
 **H-007 is narrowed, not rejected. No path tried so far observes an MCC title-service exchange.**
 
@@ -50,11 +50,17 @@ forbidden identity traffic), and the failure is transient (sign-in works normall
 after the main menu also did **not** yield an exchange: MCC reused a persistent connection to the
 settings service opened at boot, never re-resolved, and never contacted the observer (`E-P0C2C-003`).
 
-Consequence for later rungs: neither a boot-time proxy (breaks sign-in) nor a post-boot name
-redirect (misses reused connections) has produced a decrypted title-service request. A working path
-must either force a genuinely fresh settings fetch on a new connection, or act before the connection
-is established without running identity under interception — and, for certificate-trust evidence,
-have the CA present before that connection (`E-P0C2C-004`).
+*P0-C2D (pre-launch exact-host blind relay).* Acting before boot without a proxy succeeded:
+Microsoft/Xbox identity completed, MCC connected to the selected settings host through the opaque
+relay, 4,728 bytes flowed client-to-upstream and 29,226 upstream-to-client, and the main menu loaded
+without a certificate/service error (`E-P0C2D-004`). No identity host was redirected and exact
+rollback plus normal post-rollback operation were proven (`E-P0C2D-003`, `E-P0C2D-005`).
+
+Consequence for later rungs: P0-C2D removes opaque pre-launch transport as the blocker and proves a
+fresh settings connection can be reached without disrupting the observed cached-identity path. It
+does **not** make H-007 supported: no TLS was terminated and no title-service request was decrypted.
+A separately authorized exact-host TLS/SNI/ALPN observation rung can now isolate certificate/ALPN
+behavior without reintroducing the boot-time all-host proxy that failed sign-in.
 
 ## Provenance of H-008 through H-012
 

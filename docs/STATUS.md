@@ -65,14 +65,17 @@ P0 may complete only when:
    exchange has been captured, and MCC certificate acceptance/pinning remains unresolved.
    Codex Sol returned `C. REJECT — RELAY SAFETY FAILURE` for the first local **P0-C2D0 pre-launch
    interception tooling** candidate; **P0-C2D0-R1 corrected every reported blocker using synthetic
-   tests, and a separate Meta Muse Spark 1.2 read-only audit remains pending**
-   (`evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`). A first **P0-C2D live
-   attempt then halted at its starting gate, before the direct baseline**: the preflight required a
-   one-commit-ahead repository and a certificate the blind-relay rung forbids, no upstream TLS probe
-   existed, and Steam was running. **No live stage was entered, no live classification is possible,
-   and no system or client state changed.** **P0-C2D0-R2** corrected the three structural gaps with
-   synthetic tests (`evidence/p0c2d0r2_live_preflight_correction/`). The **P0-C2D live experiment
-   remains not started**, and **P0-C2E manifest discovery is not started**.
+   tests, and P0-C2D0-R2 corrected the live-preflight contract**
+   (`evidence/p0c2d0_prelaunch_tooling/`, `evidence/p0c2d0r2_live_preflight_correction/`,
+   `docs/PRELAUNCH_INTERCEPTION.md`). **P0-C2D then passed the authorized live single-host blind-
+   relay rung** (`A. BLIND RELAY PASS`): cached Microsoft/Xbox identity succeeded, MCC contacted
+   `settings.svc.halowaypoint.com` through `127.0.0.77:443`, exchanged 4,728 client-to-upstream and
+   29,226 upstream-to-client encrypted bytes, and reached the main menu without a certificate or
+   service error (`E-P0C2D-001` through `E-P0C2D-005`,
+   `evidence/p0c2d_live_blind_relay/`). Exact rollback completed before the relay deadline and a
+   separate normal post-rollback launch succeeded. This proves opaque transport only; no TLS was
+   terminated and no request, response, settings authority, CA acceptance, or pinning verdict was
+   observed. **P0-C2E manifest discovery remains not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

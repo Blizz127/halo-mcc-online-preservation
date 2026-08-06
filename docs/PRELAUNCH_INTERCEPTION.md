@@ -1,8 +1,8 @@
 # P0-C2D pre-launch interception tooling
 
-Status: **P0-C2D0-R2 corrects live-contract gaps found when the first P0-C2D live attempt halted at
-its starting gate. The live experiment did not begin, no live classification is possible, and no
-system or client state was changed. A separate Meta Muse Spark 1.2 read-only audit remains pending.**
+Status: **P0-C2D0-R2 corrected the live-contract gaps, and the separately authorized P0-C2D live
+single-host blind-relay rung completed as `A. BLIND RELAY PASS`. A separate Meta Muse Spark 1.2
+read-only audit of P0-C2D0 remains pending.**
 
 R1 corrected every blocker from the Codex Sol adversarial audit (`C. REJECT — RELAY SAFETY FAILURE`
 on the first local candidate). R2 corrects a different class of problem: the tooling obeyed its
@@ -108,6 +108,20 @@ still installed leaves the selected host pointing at nothing.
 
 These are complementary, not alternatives.
 
+## Live result: P0-C2D
+
+`evidence/p0c2d_live_blind_relay/` records the first accepted live use of this tooling. With a
+pre-launch exact-host redirect, MCC completed cached Microsoft/Xbox identity, made one connection
+through the opaque relay, exchanged 4,728 client-to-upstream and 29,226 upstream-to-client encrypted
+bytes, and reached the main menu without a certificate or service error. The redirect affected no
+protected identity host. Exact `/etc/hosts` rollback completed fifteen seconds before relay expiry,
+and a separate normal post-rollback launch succeeded.
+
+The result proves only that this selected host can traverse the pre-launch blind relay without
+breaking the observed cached-identity/main-menu path. TLS was not terminated; no payload, request,
+response, certificate body, or account identifier was inspected or persisted. CA acceptance,
+pinning, plaintext schema, and settings authority remain unresolved.
+
 ## Phase boundary
 
 P0-C2D0-R2 establishes only that the preflight, probe, and relay bounds now match the live rung's
@@ -115,6 +129,6 @@ authorized state and scope, under synthetic validation. It establishes no MCC re
 TLS acceptance or pinning verdict, settings manifest, endpoint authority, or production forwarding
 behaviour, and it changes no architecture hypothesis.
 
-**P0-C2D is not started. P0-C2E is not started.** The corrected tooling is ready for a bounded
-independent read-only audit, which should treat the live rung's authorized state and scope — not only
-the synthetic contract — as part of what it checks.
+**P0-C2D is complete. P0-C2E is not started.** The live result supports considering a separately
+authorized exact-host TLS/SNI/ALPN observation rung, but does not authorize it or any CA use. The
+corrected tooling still awaits the separate Meta Muse Spark 1.2 read-only audit noted above.

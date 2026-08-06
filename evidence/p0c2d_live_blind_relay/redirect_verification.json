@@ -1,0 +1,24 @@
+{
+  "format": "p0c2d-redirect-verification-v1",
+  "evidence_id": "E-P0C2D-003",
+  "verified_at": "2026-08-06T14:28:12-05:00",
+  "selected_hostname": "settings.svc.halowaypoint.com",
+  "authorized_address": "127.0.0.77",
+  "authorized_line_count": 1,
+  "sentinel_count": 1,
+  "selected_ipv4": [
+    "127.0.0.77"
+  ],
+  "selected_ipv6": [],
+  "selected_points_only_at_relay": true,
+  "identity_host_count": 6,
+  "identity_hosts_unaffected": true,
+  "identity_hosts_global_nonlocal": true,
+  "hosts_inode_before": 4621125,
+  "hosts_inode_during": 4621125,
+  "hosts_inode_preserved": true,
+  "relay_pid_ready_match": true,
+  "relay_run_id_ready_match": true,
+  "listener": "127.0.0.77:443",
+  "listener_exact": true
+}

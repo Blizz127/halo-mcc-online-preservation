@@ -1,0 +1,51 @@
+P0-C2D rollback and restoration verification
+==============================================
+
+Evidence ID: E-P0C2D-005
+
+Exact /etc/hosts rollback
+-------------------------
+  PASS exact prior bytes restored
+  PASS SHA-256 restored:
+       58ab06ea4280182a38c8176bc4eda7d83815cc08aec9e9ed082a71a47eebf28b
+  PASS size restored: 604 bytes
+  PASS inode preserved: 4621125
+  PASS P0-C2D sentinel absent
+  PASS exact selected-host entry absent
+  PASS unrelated hosts lines preserved byte-for-byte
+  PASS redirect removed at 2026-08-06T14:30:01-05:00
+  PASS redirect removed before relay deadline 2026-08-06T14:30:16-05:00
+
+Resolver and scope restoration
+------------------------------
+  PASS accepted resolver-cache flush command completed
+  PASS settings.svc.halowaypoint.com resolved normally after rollback
+  PASS all six protected identity hosts resolved to global, nonlocal addresses
+  PASS no protected identity host resolved to 127.0.0.77, loopback, or project-local space
+
+Relay cleanup
+-------------
+  PASS exact relay process ended
+  PASS worker threads ended
+  PASS ready file removed
+  PASS PID file removed
+  PASS 127.0.0.77:443 closed
+  PASS no relay, observer, reverse-proxy, metadata-proxy, or packet-capture process remained
+
+Normal-operation restoration
+----------------------------
+  PASS operator launched Steam and MCC normally after complete rollback
+  PASS cached Microsoft/Xbox identity succeeded
+  PASS MCC main menu loaded
+  PASS no certificate or service error appeared
+  PASS MCC quit normally
+  PASS Steam fully exited
+  PASS no MCC, Proton/Wine game, or Steam process remained at final machine check
+  PASS Steam Launch Options remained unchanged and proxy-free
+
+Repository and privacy boundary
+-------------------------------
+  PASS repository remained at the authorized starting commit during the live run
+  PASS working tree remained clean until evidence creation
+  PASS no payload, raw traffic, key, certificate body, credential, or account identifier recorded
+  PASS scratch/control paths are represented only as <LOCAL_SCRATCH>/p0c2d-live

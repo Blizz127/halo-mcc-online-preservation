@@ -1,0 +1,41 @@
+{
+  "format": "p0c2d-live-blind-relay-v1",
+  "evidence_id": "E-P0C2D-004",
+  "classification": "A. BLIND RELAY PASS",
+  "selected_hostname": "settings.svc.halowaypoint.com",
+  "local_relay": "127.0.0.77:443",
+  "upstream": "172.212.71.217:443",
+  "bounds": {
+    "total_seconds": 240,
+    "idle_seconds": 240,
+    "maximum_connections": 8,
+    "production_lingering": true
+  },
+  "launch_timestamp": null,
+  "launch_timestamp_status": "not instrumented; launch occurred after scope verification at 2026-08-06T14:28:12-05:00 and before the selected-service connection opened",
+  "identity_success": true,
+  "main_menu_success": true,
+  "visible_error_text": null,
+  "certificate_warning": false,
+  "selected_service_contacted": true,
+  "connection_count": 1,
+  "connections": [
+    {
+      "opened": "2026-08-06T14:29:27.306580000-05:00",
+      "closed": "2026-08-06T14:29:44.437936300-05:00",
+      "duration_s": 17.131,
+      "bytes_client_to_upstream": 4728,
+      "bytes_upstream_to_client": 29226,
+      "error_class": null
+    }
+  ],
+  "exit_reason": "total_deadline",
+  "redirect_removed": "2026-08-06T14:30:01-05:00",
+  "relay_deadline": "2026-08-06T14:30:16-05:00",
+  "redirect_removed_before_deadline": true,
+  "tls_terminated": false,
+  "payload_inspected": false,
+  "payload_persisted": false,
+  "peer_addresses_persisted": false,
+  "raw_traffic_captured": false
+}

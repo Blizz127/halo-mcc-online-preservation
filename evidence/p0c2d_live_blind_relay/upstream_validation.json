@@ -1,0 +1,31 @@
+{
+  "format": "p0c2d0r2-upstream-probe-v1",
+  "evidence_id": "E-P0C2D-002",
+  "selected_hostname": "settings.svc.halowaypoint.com",
+  "candidate_ip": "172.212.71.217",
+  "port": 443,
+  "sni": "settings.svc.halowaypoint.com",
+  "hostname_verification": true,
+  "verify_mode": "CERT_REQUIRED",
+  "advertised_alpn": [
+    "h2",
+    "http/1.1"
+  ],
+  "application_bytes_sent": 0,
+  "http_request_sent": false,
+  "tls_completed": true,
+  "verified": true,
+  "tls_version": "TLSv1.3",
+  "cipher_name": "TLS_AES_256_GCM_SHA384",
+  "cipher_protocol": "TLSv1.3",
+  "cipher_bits": 256,
+  "negotiated_alpn": "h2",
+  "certificate_subject": "CN=settings.svc.halowaypoint.com,O=Microsoft Corporation,L=Redmond,ST=WA,C=US",
+  "certificate_issuer": "CN=Microsoft TLS G2 RSA CA OCSP 04,O=Microsoft Corporation,C=US",
+  "certificate_not_before": "2026-05-11T18:44:40+00:00",
+  "certificate_not_after": "2026-11-07T18:44:40+00:00",
+  "certificate_sha256_fingerprint": "5e:10:21:91:9c:72:5e:21:61:e0:a8:34:9c:7f:ee:8a:00:8c:01:4f:24:8d:5c:b6:e2:c2:0a:91:8e:19:c9:8a",
+  "certificate_body_recorded": false,
+  "error_class": null,
+  "error_detail": null
+}

@@ -1,0 +1,14 @@
+{
+  "format": "p0c2d-direct-baseline-v1",
+  "evidence_id": "E-P0C2D-001",
+  "window_started": "2026-08-06T13:58:21-05:00",
+  "window_completed": "2026-08-06T14:02:01-05:00",
+  "launch_path": "normal Steam launch; Launch Options unchanged and proxy-free",
+  "sign_in_mode": "cached",
+  "identity_success": true,
+  "main_menu_success": true,
+  "visible_error_text": null,
+  "certificate_or_service_error": false,
+  "clean_shutdown": true,
+  "account_identifiers_recorded": false
+}

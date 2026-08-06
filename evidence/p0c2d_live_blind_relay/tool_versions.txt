@@ -1,0 +1,24 @@
+P0-C2D live blind-relay tool and host versions
+===============================================
+
+Environment
+-----------
+  os             Bazzite 44.20260801.0 (Kinoite)
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+  python3        Python 3.14.6
+  pytest         pytest 9.1.1
+  cryptography   49.0.0
+  git            git version 2.55.0
+  openssl        OpenSSL 3.5.7 9 Jun 2026
+
+Project tool SHA-256
+--------------------
+  p0c2d_preflight.py  f152c84790c2be7fb86f514aa5a60307c53e6a65d80ffafcdc5c0b5a251c3960
+  upstream_probe.py   791e6a5e27edd051acd0892e465c2bd5355e0c123f01d98a0ca6579e1e7a86a2
+  prelaunch_relay.py  af187b21c80e64c24c9e5a20f414d5cebd375d99923185cce01e92b6a0f82036
+  host_redirect.py    7ccf6d21941642e952679d44ab341334787557b1359c1db8357d829bd72fbeb0
+
+Privilege boundary
+------------------
+  Relay start and exact /etc/hosts install/rollback commands were run manually by the operator.
+  No sudo password was requested, received, echoed, stored, or passed by project tooling.

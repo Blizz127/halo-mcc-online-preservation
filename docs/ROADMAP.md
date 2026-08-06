@@ -50,10 +50,14 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   behaviour. The accepted P0-C2D0 audit did not catch the structural gaps; it tested the synthetic
   contract, not the live rung's state and scope. `evidence/p0c2d0r2_live_preflight_correction/`,
   `docs/PRELAUNCH_INTERCEPTION.md`.
-- **P0-C2D — Pre-launch settings interception live experiment.** *Not started; requires separate
-  authorization and operator-controlled state changes.* One attempt halted at the starting gate and
-  banked no MCC observation, so no live classification exists. Tooling completion is not experiment
-  completion and banks no MCC request, response, certificate verdict, or endpoint observation.
+- **P0-C2D — Pre-launch settings interception live experiment.** *Complete: `A. BLIND RELAY PASS`.*
+  MCC completed cached Microsoft/Xbox identity, contacted exactly
+  `settings.svc.halowaypoint.com` through an opaque relay on `127.0.0.77:443`, exchanged encrypted
+  bytes bidirectionally (4,728 client-to-upstream; 29,226 upstream-to-client), and reached the main
+  menu without a certificate or service error. Exact rollback completed before relay expiry and a
+  separate normal launch succeeded (`E-P0C2D-001` through `E-P0C2D-005`,
+  `evidence/p0c2d_live_blind_relay/`). This proves transport and pre-launch reachability only; it
+  does not establish plaintext, schema, settings authority, CA acceptance, or pinning.
 - **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
   evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused
   connection or that the settings service is a manifest authority.
