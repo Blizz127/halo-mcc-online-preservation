@@ -1,0 +1,85 @@
+{
+  "rung": "P0-C2A",
+  "method": "explicit proxy in tunnel mode only; no TLS termination against any real host",
+  "local_test_ca": {
+    "subject": "O=halo-mcc-online-preservation,CN=P0-C2A Local Test CA (DO NOT TRUST)",
+    "sha256_fingerprint": "f4:10:86:22:d0:2b:0e:03:07:dd:d3:2e:7c:1e:3c:80:e1:d1:10:04:35:24:56:60:4c:77:b8:ad:56:d1:b0:26",
+    "validity_days": 2,
+    "name_constrained_to": [
+      "p0c2a.test",
+      "127.0.0.0/8"
+    ],
+    "private_key_committed": false
+  },
+  "objective_1_native_linux_explicit_proxy": {
+    "result": "supported",
+    "evidence": "E-P0C2A-001",
+    "detail": "Linux client reached the local HTTPS test service through the explicit proxy; status 200. Proxy recorded SNI 'p0c2a.test' without terminating TLS."
+  },
+  "objective_2_proton_windows_client_explicit_proxy": {
+    "result": "supported, but only via environment variables",
+    "evidence": "E-P0C2A-002",
+    "mechanisms_tested": [
+      {
+        "mechanism": "WinHttpRequest.SetProxy (COM)",
+        "proxy_used": false,
+        "note": "no CONNECT reached the proxy; Wine appears not to implement this COM path"
+      },
+      {
+        "mechanism": "WinINET HKCU Internet Settings ProxyEnable/ProxyServer",
+        "proxy_used": false,
+        "note": "WinHTTP is a separate stack from WinINET and does not read these values"
+      },
+      {
+        "mechanism": "http_proxy / https_proxy environment variables",
+        "proxy_used": true,
+        "note": "CONNECT to the non-loopback target was recorded by the proxy"
+      }
+    ],
+    "method_note": "Loopback targets are unusable for this test: WinHTTP bypasses the proxy for loopback, and Wine did not honour the '<-loopback>' bypass override. Non-loopback documentation addresses (RFC 5737) were used instead."
+  },
+  "objective_3_certificate_stores": {
+    "result": "the Proton prefix has its own independent Root store",
+    "evidence": "E-P0C2A-003",
+    "stores": [
+      {
+        "store": "MCC Proton prefix registry Root store",
+        "path": "HKLM\\Software\\Microsoft\\SystemCertificates\\Root\\Certificates\\<SHA1>",
+        "pre_existing_entries": 167,
+        "requires_admin": false,
+        "affects_mcc": true
+      },
+      {
+        "store": "Bazzite host system anchors",
+        "path": "/etc/pki/ca-trust/source/anchors + update-ca-trust",
+        "requires_admin": true,
+        "used_in_this_rung": false
+      }
+    ]
+  },
+  "objective_4_mcc_explicit_proxy": {
+    "result": "MCC honours http_proxy/https_proxy",
+    "evidence": "E-P0C2A-004",
+    "mcc_connect_count": 7,
+    "all_blind_tunnelled": true,
+    "decrypted_connections": 0,
+    "hosts_contacted": [
+      "api.epicgames.dev",
+      "login.live.com",
+      "login.microsoftonline.com",
+      "modules-cdn.eac-prod.on.epicgames.com",
+      "sisu.xboxlive.com",
+      "title.mgt.xboxlive.com"
+    ],
+    "observed_side_effect": "Xbox Live sign-in failed while traffic was routed through the proxy"
+  },
+  "objective_5_transparent_redirect": {
+    "result": "not required and not performed",
+    "reason": "Stage D runs only if explicit proxying does not reach MCC. It did reach MCC (objective 4), so no DNS redirection was created and /etc/hosts was never modified."
+  },
+  "objective_6_mcc_certificate_acceptance": {
+    "result": "UNRESOLVED",
+    "evidence": "E-P0C2A-005",
+    "reason": "Every connection MCC made through the proxy was to a host on the hard-exclusion list and was therefore blind-tunnelled by design. No MCC connection was ever TLS-terminated with the test CA, so acceptance, rejection, and pinning were all left untested. This is a deliberate consequence of the exclusions, not a failure."
+  }
+}

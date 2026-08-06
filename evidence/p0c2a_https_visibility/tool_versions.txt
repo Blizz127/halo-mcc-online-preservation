@@ -1,0 +1,38 @@
+P0-C2A tool and host versions
+=============================
+
+HTTPS inspection tooling inventory (taken BEFORE installing anything)
+--------------------------------------------------------------------
+  mitmproxy    NOT INSTALLED
+  mitmdump     NOT INSTALLED
+  tshark       NOT INSTALLED
+  dumpcap      NOT INSTALLED
+  stunnel      NOT INSTALLED
+  nginx        NOT INSTALLED
+  openssl      /usr/bin/openssl
+  certutil     /usr/bin/certutil
+  update-ca-trust /usr/bin/update-ca-trust
+  trust        /usr/bin/trust
+  socat        /usr/bin/socat
+  python3      /usr/bin/python3
+
+  Decision: mitmproxy was NOT installed. Building a purpose-limited proxy and
+  observer from the standard library made redaction structural rather than
+  configured - bodies are never parsed or buffered at all, and excluded hosts
+  are never TLS-terminated - and avoided layering a package onto an immutable OS.
+
+Versions
+--------
+  openssl        OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)
+  python3        Python 3.14.6
+  cryptography   50.0.0
+  git            git version 2.55.0
+  wine           wine-11.0
+  proton         1785137693 experimental-11.0-20260724c
+  os             Bazzite
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+
+Windows-side test client
+------------------------
+  cscript.exe + WinHttp.WinHttpRequest.5.1 from the MCC prefix
+  (no compiler required; WinHTTP is the stack a Windows title is most likely to use)

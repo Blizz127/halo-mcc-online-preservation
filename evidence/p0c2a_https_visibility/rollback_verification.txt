@@ -1,0 +1,57 @@
+P0-C2A rollback verification
+============================
+Generated: 2026-08-06T03:26:05Z
+
+1. Test CAs removed from the MCC Proton prefix Root store
+   (checked directly against the prefix registry file, not just the tool's own report)
+   PASS  absent: 0861AC7D6B615744E491C29C9778B6C0CB8D3CD9
+   PASS  absent: 6EE4BF533FA8605F8A978460B962F1F4A0B48137
+   PASS  absent: 380367A4E74B790F7D4F08314C66222F3CCCDB89
+
+2. WinINET proxy registry restored to pre-test state
+   pre-test: ProxyEnable=0x0, ProxyServer absent
+   now:      "ProxyEnable"=dword:00000000
+   PASS  ProxyServer absent
+
+3. No proxy, observer, or capture process remains
+   PASS  none running
+
+4. Listening ports released
+   PASS  8080/8443 free
+
+5. No DNS redirection was ever created
+   Stage D was not required (Stage C proved explicit proxying reaches MCC),
+   so /etc/hosts was never modified and no DNS override exists.
+   /etc/hosts references to halowaypoint/xboxlive/live.com: 0
+0
+
+6. Host system trust store untouched
+   No certificate was added to /etc/pki/ca-trust/source/anchors; that path
+   requires administrative privileges and was deliberately not used.
+   p0c2a anchors present: 0
+0
+
+7. Steam launch options and end-to-end normal operation   [E-P0C2A-006]
+   Set by the operator for Stage C and cleared by the operator afterwards.
+   The Steam UI field is operator-controlled and cannot be inspected from this
+   side, so its restoration is evidenced by observed client behaviour instead.
+
+   Operator-observed, after fully closing and reopening Steam with the MCC
+   Launch Options field empty:
+     PASS  MCC launched normally
+     PASS  Microsoft/Xbox sign-in SUCCEEDED
+     PASS  main menu loaded with no proxy, certificate, or service error
+     PASS  Halo: Reach menu reachable
+     PASS  MCC exited normally
+
+   Significance: the "Error encountered while signing into Xbox Live" seen in
+   Stage C did NOT persist. It was a transient condition of the proxied
+   configuration, not a change to the client, the prefix, or the account.
+
+   Note: Steam required a FULL RESTART before the cleared Launch Options field
+   took effect. A future rung that sets Launch Options should plan for that.
+
+   Limitation: this item is an operator observation of the client UI, not an
+   instrumented measurement -- no capture was running, deliberately, since the
+   purpose was to confirm untouched normal operation. Items 1-6 above are the
+   machine-checked evidence and were verified directly against on-disk state.
