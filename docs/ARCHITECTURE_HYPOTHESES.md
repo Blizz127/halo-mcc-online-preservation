@@ -10,7 +10,7 @@ Every material claim must be tracked here before it becomes architecture.
 | H-004 | MPSD is used for target MCC sessions | Unproven | Xbox service calls and session documents tied to a controlled lifecycle | Determines whether a compatible session-directory service is needed |
 | H-005 | Plain routable endpoints can replace platform secure addresses | Unproven | Two-client capture and controlled substitution test | Determines transport implementation scale |
 | H-006 | MCC dedicated allocation can fall back to peer host | Partially supported | Official incident behavior plus reproducible retail observation | Provides a bounded fallback if UDS is unavailable |
-| H-007 | Proxy-based TLS capture is sufficient | Unproven for MCC | Wireshark-visible request also appears decrypted in proxy capture | Determines whether transparent interception is needed |
+| H-007 | Proxy-based TLS capture is sufficient | **Narrowed — insufficient for the sign-in phase** (P0-C2B) | Wireshark-visible request also appears decrypted in proxy capture | Determines whether transparent interception is needed |
 | H-008 | MCC uses dedicated servers for matchmade games and Custom Game Browser sessions | Unproven | Retail capture of one matchmade and one CGB session showing server allocation and the resulting connection | Determines which modes require a server-side host substitute |
 | H-009 | MCC modes outside matchmaking and CGB can run on a peer-hosted session | Unproven | Retail capture of a custom game or campaign co-op showing a client acting as host | Bounds how much of the target surface can avoid dedicated hosting; overlaps H-006 |
 | H-010 | The MCC dedicated-server application is a "Unified Dedicated Server" (UDS) — a wrapper that configures and launches server builds of MCC games | Unproven | Cited official primary source, or binary/retail observation of the wrapper and its launch contract | Defines what any self-hosted server would have to match; prerequisite framing for H-001 |
@@ -33,6 +33,28 @@ have to rediscover them, and so nobody mistakes "endpoint exists" for "hypothesi
 | H-005 / H-011 | Halo-operated TURN relays (`COTURN.*.halowaypoint.com`, `turn-mcc*.trafficmanager.net`) resolved and probed on UDP/3478 (`E-P0C1-007`) | Relay endpoints existing and receiving 32 packets is a *necessary condition* for an ICE/TURN path, not a demonstration of one. No candidate exchange or session was observed |
 | H-008 | QoS probing on UDP/3075 across 15 Azure regions during launch and menus (`E-P0C1-006`) | Consistent with regional server selection, but no allocation, assignment, or match was observed. Attribution here is by destination address, not process ownership |
 | H-012 | Anti-cheat module CDN contacted by the launcher (`E-P0C1-008`), while `E-P0B1A-004` recorded no EAC process or module | Both facts stand; neither resolves the other. Module delivery is not proof of enforcement |
+
+## P0-C2B narrowing of H-007
+
+**H-007 is narrowed, not rejected.** MCC fails to complete Microsoft/Xbox sign-in through an
+explicit proxy **even when nothing is decrypted** — every identity host blind-tunnelled, zero TLS
+terminations. Reproduced twice across two proxy implementations (`E-P0C2A-004`, `E-P0C2B-001`), and
+not attributable to relay failure: the tunnels carried 6–63 KB per host bidirectionally, and fixing
+the most plausible mechanical cause (tunnel half-close teardown) did not change the outcome
+(`E-P0C2B-002`).
+
+So proxy-based capture is **insufficient for the sign-in phase**. Three reasons it is not
+`Rejected`:
+
+1. The **cause is unresolved by choice** — diagnosing it means decrypting the authentication traffic
+   these rungs forbid.
+2. **Post-authentication proxying is untested.** Signing in without a proxy and enabling one
+   afterwards has never been tried, and H-007 may hold for that path.
+3. The failure is **transient**: after rollback, sign-in succeeds normally (`E-P0C2B-004`), so
+   nothing about the client or account was persistently changed.
+
+Consequence for later rungs: do not assume a proxy can observe MCC end-to-end. Either establish the
+session before proxying, or exclude identity traffic from the proxy path entirely.
 
 ## Provenance of H-008 through H-012
 

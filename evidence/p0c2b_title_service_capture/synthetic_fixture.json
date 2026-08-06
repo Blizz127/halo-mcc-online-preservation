@@ -1,0 +1,63 @@
+{
+  "WARNING": "This fixture is NOT derived from Halo MCC. Stage B never ran and no MCC response was ever decrypted. It is generated from invented input purely to demonstrate and test the schema/fixture tooling, and must never be cited as MCC evidence.",
+  "provenance": "synthetic",
+  "derived_from": "invented input defined in this rung, not from any captured traffic",
+  "generator": "tools/interception/linux/schema_extract.py",
+  "seed": "p0c2b",
+  "deterministic": true,
+  "schema": {
+    "type": "object",
+    "provenance": "synthetic",
+    "properties": {
+      "exampleCount": {
+        "type": "integer",
+        "provenance": "synthetic"
+      },
+      "exampleFlag": {
+        "type": "boolean",
+        "provenance": "synthetic"
+      },
+      "exampleList": {
+        "type": "array",
+        "provenance": "synthetic",
+        "length": 1,
+        "element_types": [
+          "object"
+        ],
+        "element_schema": {
+          "type": "object",
+          "provenance": "synthetic",
+          "properties": {
+            "exampleName": {
+              "type": "string",
+              "provenance": "synthetic",
+              "length_band": "short"
+            },
+            "exampleValue": {
+              "type": "integer",
+              "provenance": "synthetic"
+            }
+          },
+          "property_count": 2
+        },
+        "homogeneous": true
+      },
+      "exampleNullable": {
+        "type": "null",
+        "provenance": "synthetic"
+      }
+    },
+    "property_count": 4
+  },
+  "fixture": {
+    "exampleCount": 7362,
+    "exampleFlag": false,
+    "exampleList": [
+      {
+        "exampleName": "synthetic-dd467074",
+        "exampleValue": 7708
+      }
+    ],
+    "exampleNullable": null
+  }
+}

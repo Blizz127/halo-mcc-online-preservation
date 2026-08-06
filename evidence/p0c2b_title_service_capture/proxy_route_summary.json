@@ -1,0 +1,67 @@
+{
+  "rung": "P0-C2B",
+  "stage_a": {
+    "mode": "tunnel only - no host was TLS-terminated",
+    "result": "sign-in FAILED; main menu not reached",
+    "total_connects": 7,
+    "terminated_connections": 0,
+    "connections_with_tls_result": 0,
+    "hosts": {
+      "api.epicgames.dev": {
+        "connect_count": 2,
+        "bytes_relayed": 62852,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      },
+      "login.live.com": {
+        "connect_count": 1,
+        "bytes_relayed": 11528,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      },
+      "login.microsoftonline.com": {
+        "connect_count": 1,
+        "bytes_relayed": 5569,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      },
+      "modules-cdn.eac-prod.on.epicgames.com": {
+        "connect_count": 1,
+        "bytes_relayed": 6209,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      },
+      "sisu.xboxlive.com": {
+        "connect_count": 1,
+        "bytes_relayed": 20768,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      },
+      "title.mgt.xboxlive.com": {
+        "connect_count": 1,
+        "bytes_relayed": 28358,
+        "excluded_from_inspection": true,
+        "actions": [
+          "blind_tunnel_excluded"
+        ]
+      }
+    }
+  },
+  "stage_b": {
+    "ran": false,
+    "reason": "Stage B is gated on Stage A reaching the main menu. It did not, so per the rung's own rule no decryption was attempted and no allowlist was activated.",
+    "decrypt_allowlist_activated": false,
+    "temporary_ca_installed": false
+  },
+  "decryption_total": 0
+}

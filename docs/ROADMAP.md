@@ -18,9 +18,19 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   Established a distinct `*.svc.halowaypoint.com` title-service layer, an identity-before-title
   bootstrap order, MPSD contact from the game process, UDP/3075 QoS probing across 15 Azure
   regions, and UDP/3478 traffic to Halo-operated TURN relays. Promoted no hypothesis.
-- **P0-C2 — Controlled HTTPS visibility and redirection-path validation.** *Not started, requires
-  its own authorization.* Tests whether the connections P0-C1 mapped can be observed or redirected
-  without breaking Microsoft/Xbox sign-in.
+- **P0-C2A — Bazzite HTTPS visibility and trust-path validation.** *Complete.* Established that a
+  native Linux client, a Proton/Wine WinHTTP client, and MCC itself all honour an explicit proxy
+  (MCC and the Wine client only via `http_proxy`/`https_proxy`), and that the Proton prefix has its
+  own Root certificate store writable without administrative privilege. MCC certificate acceptance
+  and pinning left **unresolved**. `evidence/p0c2a_https_visibility/`, `docs/HTTPS_VISIBILITY.md`.
+- **P0-C2B — Read-only MCC title-service request/response capture.** *Complete, with no capture
+  taken.* MCC does not complete Microsoft/Xbox sign-in through an explicit proxy even with every
+  identity host blind-tunnelled and zero decryption, so Stage B was never eligible. Narrowed H-007.
+  `evidence/p0c2b_title_service_capture/`, `docs/TITLE_SERVICE_CAPTURE.md`.
+- **P0-C2C — MCC endpoint manifest and configuration-surface discovery.** *Not started, requires its
+  own authorization.* Should not assume proxy-based access; the open question is why MCC will not
+  authenticate through a proxy, and whether an observation path exists that does not disturb
+  sign-in.
 
 ### P0-D: Cold-boot service inventory
 Capture DNS, TLS SNI, HTTP(S), WebSocket, AMQP if present, STUN/TURN/ICE, and UDP flows from a fresh profile. Identify manifests before enumerating endpoints manually.

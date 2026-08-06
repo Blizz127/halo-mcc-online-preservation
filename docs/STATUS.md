@@ -52,8 +52,12 @@ P0 may complete only when:
 2. Capture tooling is validated against visible ground-truth traffic. **Passive metadata capture
    built and exercised** (`evidence/p0c1_passive_connection_topology/`, tooling in
    `tools/capture/linux/`); the observed topology is summarized in
-   `docs/CLIENT_BOOTSTRAP_TOPOLOGY.md`. **Decrypted-HTTPS visibility is not validated** — that is
-   P0-C2 and is unstarted, so this item is not complete.
+   `docs/CLIENT_BOOTSTRAP_TOPOLOGY.md`. **Decrypted-HTTPS visibility is still not validated**, and
+   this item remains open: **P0-C2A** established that MCC honours an explicit proxy and mapped the
+   governing certificate stores (`evidence/p0c2a_https_visibility/`), but **P0-C2B** then found MCC
+   will **not complete Xbox Live sign-in through a proxy even with zero decryption**
+   (`evidence/p0c2b_title_service_capture/`, `docs/TITLE_SERVICE_CAPTURE.md`). No MCC title-service
+   exchange has been captured, and MCC certificate acceptance/pinning remains unresolved.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

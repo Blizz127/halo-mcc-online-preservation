@@ -1,0 +1,33 @@
+P0-C2B tool and host versions
+=============================
+
+Tooling used (all project-owned; nothing new was installed for this rung)
+------------------------------------------------------------------------
+  tools/interception/linux/metadata_proxy.py   explicit proxy (tunnel mode only this rung)
+  tools/interception/linux/exclusions.py       hard-exclusion denylist, fail-closed
+  tools/interception/linux/schema_extract.py   schema + synthetic fixture (unused on real data)
+  tools/capture/linux/pcap_parse.py            TLS ClientHello SNI parsing (reused)
+
+Changes made to the proxy for this rung
+---------------------------------------
+  * tunnel half-close handling fixed: a finished direction no longer tears down
+    the opposite direction, which would break any multi-step auth exchange
+  * strict decrypt allowlist added: exact host match only, default deny,
+    empty allowlist fails closed, denylist always wins over allowlist
+  * bytes_relayed counter added so tunnel throughput is observable without
+    inspecting any content
+
+Versions
+--------
+  openssl        OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)
+  python3        Python 3.14.6
+  cryptography   50.0.0
+  git            git version 2.55.0
+  proton         1785137693 experimental-11.0-20260724c
+  os             Bazzite
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+
+Not used
+--------
+  No CA was generated or installed. No TLS session was terminated.
+  No pcap, HAR, SAZ, or proxy dump was created.

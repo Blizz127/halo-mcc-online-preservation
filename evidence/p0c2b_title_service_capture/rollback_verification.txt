@@ -1,0 +1,36 @@
+P0-C2B rollback verification
+============================
+Generated: 2026-08-06T04:02:20Z
+
+Rollback was performed in the order that P0-C2A's mistake taught: MCC stopped
+and Launch Options cleared BEFORE the proxy was stopped, so the client was never
+left pointing at a dead port.
+
+1. MCC stopped
+   PASS not running
+2. Steam Launch Options cleared (operator, in the Steam UI)
+   PASS empty
+3. Steam fully exited during rollback, then restarted normally by the operator
+4. Proxy stopped
+   PASS stopped
+5. Temporary test certificates in the Proton prefix
+   Stage B never ran, so NO certificate was installed during this rung.
+   PASS absent 0861AC7D6B615744... (P0-C2A CA, still removed)
+   PASS absent 6EE4BF533FA8605F... (P0-C2A CA, still removed)
+   PASS absent 380367A4E74B790F... (P0-C2A CA, still removed)
+   'DO NOT TRUST' CAs in prefix: 0
+0
+6. DNS / hosts changes
+   /etc/hosts entries for MCC-related domains: 0
+   No redirect was ever created: Stage D-style redirection is not part of this rung.
+7-8. Steam restarted and MCC verified by the operator
+   PASS operator-observed: MCC launched, Microsoft/Xbox sign-in SUCCEEDED,
+        main menu loaded normally. [E-P0C2B-004]
+   Significance: the proxied sign-in failure did NOT persist after rollback.
+9. Ports and processes
+   PASS ports 8080/8443 closed
+   PASS no proxy/observer/capture processes
+
+10. No decrypted material exists
+    PASS 0 connections TLS-terminated; 0 raw proxy dumps created;
+         no request or response body was read, buffered, or written at any point.

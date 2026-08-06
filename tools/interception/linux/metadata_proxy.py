@@ -69,11 +69,29 @@ class ProxyState:
                 Path(self.log_path).write_text(json.dumps(self.records, indent=2), encoding="utf-8")
 
     def should_terminate(self, host: str) -> bool:
-        if is_excluded(host):
+        """Decide whether one host may be TLS-terminated. Default is NO.
+
+        Three independent conditions must all hold, checked in this order so the
+        safety-relevant ones cannot be skipped:
+
+        1. the host is not on the hard-exclusion denylist,
+        2. the proxy was explicitly started in terminate mode, and
+        3. the host appears **verbatim** in the decrypt allowlist.
+
+        The allowlist is an exact set-membership test on the normalized host,
+        never a suffix or prefix match: `settings.svc.halowaypoint.com.evil.test`
+        does not match an allowlisted `settings.svc.halowaypoint.com`. An empty
+        allowlist terminates nothing, so forgetting to configure it fails closed
+        rather than decrypting everything.
+        """
+        candidate = (host or "").strip().lower().rstrip(".")
+        if not candidate:
+            return False
+        if is_excluded(candidate):
             return False
         if self.mode != "terminate":
             return False
-        return not self.terminate_hosts or host.lower() in self.terminate_hosts
+        return candidate in self.terminate_hosts
 
 
 class ProxyHandler(socketserver.StreamRequestHandler):
@@ -162,18 +180,41 @@ class ProxyHandler(socketserver.StreamRequestHandler):
         self._tunnel(upstream, entry)
 
     def _tunnel(self, upstream: socket.socket, entry: dict) -> None:
-        """Opaque byte relay. Peeks only the first client record for SNI."""
+        """Opaque byte relay. Peeks only the first client record for SNI.
+
+        Half-close is handled properly rather than treated as end-of-tunnel. An
+        earlier version tore down BOTH directions the first time either side
+        returned zero bytes, which breaks any exchange where one peer finishes
+        sending while still expecting a reply - exactly the shape of a
+        multi-step authentication flow. The relay now shuts down only the
+        finished direction and keeps the other open until both are done.
+        """
         client = self.connection
         first = True
+        open_sides = {client, upstream}
         try:
-            while True:
-                readable, _, _ = select.select([client, upstream], [], [], 30)
-                if not readable:
+            while open_sides:
+                readable, _, errored = select.select(list(open_sides), [], list(open_sides), 120)
+                if errored:
                     break
+                if not readable:
+                    break  # idle timeout
                 for sock in readable:
-                    data = sock.recv(65536)
+                    peer = upstream if sock is client else client
+                    try:
+                        data = sock.recv(65536)
+                    except (ConnectionResetError, TimeoutError):
+                        open_sides.discard(sock)
+                        continue
                     if not data:
-                        raise ConnectionResetError
+                        # This direction is finished; signal EOF onward and stop
+                        # reading it, but leave the opposite direction running.
+                        open_sides.discard(sock)
+                        try:
+                            peer.shutdown(socket.SHUT_WR)
+                        except OSError:
+                            pass
+                        continue
                     if first and sock is client:
                         first = False
                         # Excluded hosts: do not even inspect the ClientHello.
@@ -182,8 +223,12 @@ class ProxyHandler(socketserver.StreamRequestHandler):
                                 entry["sni"] = parse_tls_client_hello_sni(data)
                             except Exception:
                                 entry["sni"] = None
-                    (upstream if sock is client else client).sendall(data)
-        except (OSError, ConnectionResetError):
+                    entry["bytes_relayed"] = entry.get("bytes_relayed", 0) + len(data)
+                    try:
+                        peer.sendall(data)
+                    except OSError:
+                        open_sides.discard(sock)
+        except (OSError, ValueError):
             pass
         finally:
             self.state.record(entry)

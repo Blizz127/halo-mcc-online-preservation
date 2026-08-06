@@ -1,0 +1,11 @@
+{
+  "captured": false,
+  "reason": "Stage B did not run: MCC did not complete Microsoft/Xbox sign-in through the proxy, so no title-service request was ever made through it and nothing was decrypted.",
+  "selected_host_if_stage_b_had_run": "settings.svc.halowaypoint.com",
+  "provenance": "unresolved",
+  "method": null,
+  "normalized_path": null,
+  "query_parameter_names": [],
+  "request_header_names": [],
+  "request_body_length": null
+}
