@@ -28,11 +28,30 @@ from pathlib import Path
 AUTHORIZED_BIND = "127.0.0.77"
 AUTHORIZED_HOST = "settings.svc.halowaypoint.com"
 AUTHORIZED_PORT = 443
-DEFAULT_MAX_CONNECTIONS = 4
-DEFAULT_SECONDS = 120.0
-DEFAULT_IDLE_SECONDS = 30.0
 MAX_SECONDS = 300.0
 MAX_CONNECTIONS = 16
+
+# Live bounds, derived from measured launch behaviour rather than guessed.
+#
+# P0-C1 (`E-P0C1-003`) recorded Halo title-service resolution at +72s after MCC
+# launch, and the relay must already be listening before Steam starts, so the
+# window the relay has to survive is roughly:
+#
+#     Steam start (~40s) + Play to title services (~72s) + operator latency
+#
+# The recommended total leaves margin over that inside the unchanged 300s hard
+# maximum. The maximum is NOT raised: a longer experiment needs a new rung, not
+# a bigger number here.
+OBSERVED_LAUNCH_TO_TITLE_SERVICE_SECONDS = 72.0
+RECOMMENDED_LIVE_SECONDS = 240.0
+# Idle timeout equal to the total runtime, deliberately: a healthy settings
+# connection is expected to sit quiet between requests, and tearing it down
+# mid-session would corrupt the very observation this rung exists to make. The
+# total deadline stays the single bound that ends the run.
+RECOMMENDED_LIVE_IDLE_SECONDS = 240.0
+# Headroom for reconnects. MCC opening, closing, and reopening the settings
+# connection must not exhaust the cap while the redirect is still installed.
+RECOMMENDED_LIVE_MAX_CONNECTIONS = 8
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 _LOG_LOCK = threading.Lock()
 CONTROL_FORMAT = "p0c2d0-control-v1"
@@ -99,7 +118,22 @@ def validate_production_contract(bind: str, target_host: str, upstream_ip: str,
         address = ipaddress.ip_address(upstream_ip)
     except ValueError as exc:
         raise RelaySafetyError("upstream must be a numeric IPv4 address; DNS is forbidden") from exc
-    if not isinstance(address, ipaddress.IPv4Address) or not address.is_global:
+    if not isinstance(address, ipaddress.IPv4Address):
+        raise RelaySafetyError("production upstream must be a global unicast IPv4 address")
+    # `is_global` alone is not sufficient: CPython reports IPv4 multicast as
+    # global, so a multicast destination would otherwise satisfy a
+    # global-unicast-only check. Disqualify each class explicitly.
+    for disqualified, label in (
+        (address.is_unspecified, "unspecified"),
+        (address.is_loopback, "loopback"),
+        (address.is_link_local, "link-local"),
+        (address.is_multicast, "multicast"),
+        (address.is_reserved, "reserved"),
+        (address.is_private, "private"),
+    ):
+        if disqualified:
+            raise RelaySafetyError(f"production upstream must not be {label}: {address}")
+    if not address.is_global:
         raise RelaySafetyError("production upstream must be a global unicast IPv4 address")
     if upstream_port != AUTHORIZED_PORT:
         raise RelaySafetyError("production upstream port must be 443")
@@ -310,19 +344,30 @@ class RelayState:
         self.log_path = Path(log_path) if log_path else None
         self.connections: list[dict] = []
         self.failure_class: str | None = None
+        self.exit_reason: str | None = None
         self._safe_log = SafeJsonLog(self.log_path)
         self._persist()
 
     def _persist(self) -> None:
         self._safe_log.write({
-            "format": "p0c2d0-safe-relay-v1",
+            "format": "p0c2d0r2-safe-relay-v2",
             "connection_count": len(self.connections),
+            "exit_reason": self.exit_reason,
             "connections": self.connections,
         })
 
     def record(self, entry: dict) -> None:
         with _LOG_LOCK:
             self.connections.append(entry)
+            try:
+                self._persist()
+            except OSError as exc:
+                self.failure_class = type(exc).__name__
+
+    def set_exit_reason(self, reason: str) -> None:
+        """Record why the run ended, so a cap-bounded run is never read as a full one."""
+        with _LOG_LOCK:
+            self.exit_reason = reason
             try:
                 self._persist()
             except OSError as exc:
@@ -443,7 +488,11 @@ def serve(bind: str, port: int, target_host: str, upstream_ip: str, upstream_por
           log_path: Path | None, max_connections: int, total_timeout: float,
           idle_timeout: float, pid_file: Path | None = None, ready_file: Path | None = None,
           enforce_production: bool = True,
-          ready_event: threading.Event | None = None) -> RelayState:
+          ready_event: threading.Event | None = None,
+          linger_until_deadline: bool = False) -> RelayState:
+    """Forward raw bytes for one host. ``linger_until_deadline`` keeps the run
+    alive after the connection cap is reached, so a live redirect never points
+    at an exited relay; over-cap connections are closed and recorded instead."""
     validate_bounds(max_connections, total_timeout, idle_timeout)
     if enforce_production:
         validate_production_contract(bind, target_host, upstream_ip, upstream_port)
@@ -491,6 +540,8 @@ def serve(bind: str, port: int, target_host: str, upstream_ip: str, upstream_por
     run_id = uuid.uuid4().hex
     pid_identity: ControlFileIdentity | None = None
     ready_identity: ControlFileIdentity | None = None
+    exit_reason = "total_deadline"
+    refused_over_cap = 0
     try:
         pid_identity = create_control_file(pid_file, RELAY_TOOL, "pid", pid, run_id)
         ready_identity = create_control_file(
@@ -499,10 +550,33 @@ def serve(bind: str, port: int, target_host: str, upstream_ip: str, upstream_por
         )
         if ready_event:
             ready_event.set()
-        while len(threads) < max_connections and time.monotonic() < deadline:
+        while time.monotonic() < deadline:
+            if len(threads) >= max_connections:
+                if not linger_until_deadline:
+                    exit_reason = "connection_cap_reached"
+                    break
+                if refused_over_cap >= max_connections:
+                    # Bounded refusal record; then stay alive, but stop
+                    # accepting, until the deadline the operator planned around.
+                    exit_reason = "connection_cap_reached_lingering"
+                    stop_event.wait(max(0.0, deadline - time.monotonic()))
+                    break
             try:
                 client, _ = listener.accept()
             except TimeoutError:
+                continue
+            if len(threads) >= max_connections:
+                refused_over_cap += 1
+                moment = _now()
+                state.record({
+                    "opened": moment, "bytes_client_to_upstream": 0,
+                    "bytes_upstream_to_client": 0, "closed": moment,
+                    "duration_s": 0.0, "error_class": "ConnectionCapReached",
+                })
+                try:
+                    client.close()
+                except OSError:
+                    pass
                 continue
             clients.append(client)
             thread = threading.Thread(
@@ -517,6 +591,7 @@ def serve(bind: str, port: int, target_host: str, upstream_ip: str, upstream_por
         for thread in threads:
             thread.join(max(0.0, deadline - time.monotonic()))
     finally:
+        state.set_exit_reason(exit_reason)
         stop_event.set()
         listener.close()
         for client in clients:
@@ -552,13 +627,21 @@ def main() -> int:
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("--pid-file", type=Path, required=True)
     parser.add_argument("--ready-file", type=Path, required=True)
-    parser.add_argument("--max-connections", type=int, default=DEFAULT_MAX_CONNECTIONS)
-    parser.add_argument("--seconds", type=float, default=DEFAULT_SECONDS)
-    parser.add_argument("--idle-seconds", type=float, default=DEFAULT_IDLE_SECONDS)
+    parser.add_argument("--max-connections", type=int,
+                        default=RECOMMENDED_LIVE_MAX_CONNECTIONS,
+                        help="reconnect headroom; over-cap connections are closed and recorded")
+    parser.add_argument("--seconds", type=float, default=RECOMMENDED_LIVE_SECONDS,
+                        help=f"total runtime; hard maximum is {MAX_SECONDS:g}s")
+    parser.add_argument("--idle-seconds", type=float, default=RECOMMENDED_LIVE_IDLE_SECONDS,
+                        help="defaults to the total runtime so a quiet healthy "
+                             "settings connection is never torn down early")
     args = parser.parse_args()
+    # Production runs linger: the relay must outlive its first connection so the
+    # installed redirect never points at an exited listener before rollback.
     serve(args.bind, args.port, args.target_host, args.upstream_ip, args.upstream_port,
           args.log, args.max_connections, args.seconds, args.idle_seconds,
-          args.pid_file, args.ready_file, enforce_production=True)
+          args.pid_file, args.ready_file, enforce_production=True,
+          linger_until_deadline=True)
     return 0
 
 

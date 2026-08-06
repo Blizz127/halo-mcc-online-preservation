@@ -40,8 +40,19 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   schema, TLS-observer, preflight, and documentation blockers. R1 corrects and tests each finding.
   The HTTP reverse proxy remains explicitly `NOT READY` with no runnable network path.
   `evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`.
+- **P0-C2D0-R2 — Live-preflight contract correction.** *Complete; synthetic validation only.* A first
+  P0-C2D live attempt halted at its starting gate, before the direct baseline, and changed no system
+  or client state. Three structural gaps were exposed: the preflight required a one-commit-ahead
+  repository (the authorized live state is 0/0), it unconditionally required certificate material the
+  blind-relay rung forbids, and no upstream TLS probe existed. Steam running was a fourth finding, an
+  operator precondition rather than a defect. R2 makes Git expectations and the certificate stage
+  explicit, adds `upstream_probe.py`, and reconciles the relay's live bounds and dead-relay
+  behaviour. The accepted P0-C2D0 audit did not catch the structural gaps; it tested the synthetic
+  contract, not the live rung's state and scope. `evidence/p0c2d0r2_live_preflight_correction/`,
+  `docs/PRELAUNCH_INTERCEPTION.md`.
 - **P0-C2D — Pre-launch settings interception live experiment.** *Not started; requires separate
-  authorization and operator-controlled state changes.* Tooling completion is not experiment
+  authorization and operator-controlled state changes.* One attempt halted at the starting gate and
+  banked no MCC observation, so no live classification exists. Tooling completion is not experiment
   completion and banks no MCC request, response, certificate verdict, or endpoint observation.
 - **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
   evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused

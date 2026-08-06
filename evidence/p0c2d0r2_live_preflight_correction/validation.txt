@@ -1,0 +1,92 @@
+P0-C2D0-R2 synthetic validation
+
+Trigger:
+  first attempted P0-C2D live rung halted at its starting gate
+  starting commit: 045d89d164e2ff5fae735424ffe333531cb2db25
+  live stage entered: none
+  live classification: none possible; direct baseline never attempted
+  system/client state changed: none
+
+Audit history:
+  Codex Sol (P0-C2D0 first candidate): C. REJECT - RELAY SAFETY FAILURE, corrected in R1
+  Codex Sol coverage gap: synthetic contract only; live-rung state and scope untested
+  Meta Muse Spark 1.2 read-only audit: still pending, not claimed as passed
+
+Environment:
+  Python 3.14.6
+  pytest 9.1.1
+
+Targeted R2 safety suite:
+  python3 -m pytest -q tests/test_p0c2d0_prelaunch.py
+  124 passed in 8.90s   (57 passed at R1)
+
+Full repository suite:
+  python3 -m pytest -q
+  243 passed in 9.02s   (176 passed at R1)
+
+Static/status checks:
+  python3 -m compileall -q tools tests   passed
+  git diff --check                        passed
+
+  python3 -m ruff check tools/interception/linux tests
+  not run: ruff is not installed in the validation environment
+
+Coverage added for each live-preflight finding:
+  PASS pushed synchronized 0/0 Git state accepted
+  PASS one-ahead state accepted only when explicitly expected
+  PASS unexpected ahead reported with expected and actual values
+  PASS unexpected behind reported with expected and actual values
+  PASS malformed rev-list output fails closed (empty, single field, three
+       fields, non-numeric, negative, space-separated triple)
+  PASS failing Git query and raising Git command both fail closed
+  PASS branch, HEAD, and remote-tip mismatches each reported
+  PASS expected-parent optional and checked only when supplied
+  PASS no 40-hex commit hash and no "0\t1" literal remain in the preflight source
+  PASS blind-relay stage passes with no CA, certificate, key, or Wine input
+  PASS blind-relay stage never invokes the certificate check (substituted to raise)
+  PASS blind-relay stage never inspects Wine (dependency substituted to raise)
+  PASS blind-relay stage leaves the scratch directory byte-identical
+  PASS blind-relay stage rejects each unexpected cert/key/prefix/wine/thumbprint argument
+  PASS tls-observer stage requires its certificate inputs
+  PASS stage is never inferred; an unknown stage raises
+  PASS upstream probe collects TLS version, cipher, ALPN, subject, issuer, fingerprint
+  PASS upstream probe sends zero application bytes, proven from the server side
+  PASS upstream probe records no certificate body, DER, or PEM
+  PASS upstream probe rejects an untrusted certificate
+  PASS upstream probe rejects a hostname mismatch
+  PASS upstream probe records a refused connection without raising
+  PASS upstream probe rejects hostname-as-IP, IPv6, loopback, private, link-local,
+       multicast, reserved, unspecified, broadcast, RFC 5737 documentation,
+       RFC 2544 benchmarking, RFC 5771 MCAST-TEST-NET, RFC 6598 shared space
+  PASS synthetic probe entry point refuses non-loopback, low ports, and the
+       production hostname
+  PASS no listener remains after probe tests
+  PASS recommended live relay bounds are internally consistent and inside the
+       unchanged 300s maximum
+  PASS relay does not exit after its first completed connection while lingering
+  PASS over-cap connections are closed and recorded, relay stays alive
+  PASS exit_reason recorded for deadline and cap-bounded runs, and persisted
+  PASS relay production contract rejects multicast, broadcast, reserved,
+       unspecified, shared-space upstreams
+
+Network and mutation boundary:
+  synthetic loopback listeners only, high unprivileged ports
+  no production service contacted, including by the new upstream probe
+  every production-path probe assertion raises before a socket is created
+  no sudo command executed
+  no Steam, MCC, Wine, relay, observer, proxy, or capture process started or stopped
+  no /etc/hosts, DNS, routing, firewall, proxy, Wine, or certificate-store change
+  no packet capture run
+  no listener or test process remained after validation
+  no temporary synthetic artifact remained
+
+Sensitive-material scan:
+  no key, certificate, PEM, DER, PCAP, HAR, SAZ, token, cookie, authorization
+  value, account identifier, gamertag, XUID, or private path in tracked files
+  no scratch or temporary control file staged
+
+Phase boundary:
+  P0-C2D live experiment not started
+  P0-C2E manifest discovery not started
+  reverse proxy remains NOT READY and safely disabled
+  no architecture hypothesis promoted, narrowed, or changed

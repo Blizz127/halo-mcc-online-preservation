@@ -14,9 +14,9 @@
 
 Evidence IDs do exist in this repository. P0-B1 through P0-C2C banked retail-build, launch,
 passive-topology, HTTPS-visibility, title-service-capture, and post-authentication-interception
-evidence under `evidence/`; their reader-facing summaries cite those IDs. P0-C2D0 additionally
-banks synthetic tooling-validation evidence. None of that evidence, by itself, completes the
-promotion requirements for an architecture hypothesis.
+evidence under `evidence/`; their reader-facing summaries cite those IDs. P0-C2D0 and P0-C2D0-R2
+additionally bank synthetic tooling-validation evidence. None of that evidence, by itself, completes
+the promotion requirements for an architecture hypothesis.
 
 Five entries previously listed here as accepted facts carried no evidence IDs and could not be
 traced or re-adjudicated. They were relocated to `docs/ARCHITECTURE_HYPOTHESES.md` as H-008
@@ -66,8 +66,13 @@ P0 may complete only when:
    Codex Sol returned `C. REJECT — RELAY SAFETY FAILURE` for the first local **P0-C2D0 pre-launch
    interception tooling** candidate; **P0-C2D0-R1 corrected every reported blocker using synthetic
    tests, and a separate Meta Muse Spark 1.2 read-only audit remains pending**
-   (`evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`). The **P0-C2D live
-   experiment is not started**, and **P0-C2E manifest discovery is not started**.
+   (`evidence/p0c2d0_prelaunch_tooling/`, `docs/PRELAUNCH_INTERCEPTION.md`). A first **P0-C2D live
+   attempt then halted at its starting gate, before the direct baseline**: the preflight required a
+   one-commit-ahead repository and a certificate the blind-relay rung forbids, no upstream TLS probe
+   existed, and Steam was running. **No live stage was entered, no live classification is possible,
+   and no system or client state changed.** **P0-C2D0-R2** corrected the three structural gaps with
+   synthetic tests (`evidence/p0c2d0r2_live_preflight_correction/`). The **P0-C2D live experiment
+   remains not started**, and **P0-C2E manifest discovery is not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

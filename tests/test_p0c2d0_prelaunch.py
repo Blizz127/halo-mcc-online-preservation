@@ -25,6 +25,7 @@ import prelaunch_relay  # noqa: E402
 import reverse_proxy  # noqa: E402
 import schema_extract  # noqa: E402
 import tls_observer  # noqa: E402
+import upstream_probe  # noqa: E402
 import wine_trust  # noqa: E402
 
 
@@ -687,7 +688,7 @@ def test_preflight_is_fail_closed_and_read_only(
     wine.chmod(0o700)
     values = {
         "branch": "main", "head": "a" * 40, "parent": "b" * 40,
-        "remote_tip": "b" * 40, "status": "", "ahead_behind": "0\t1",
+        "remote_tip": "a" * 40, "status": "", "ahead_behind": "0\t0",
     }
 
     def command(args):
@@ -715,19 +716,27 @@ def test_preflight_is_fail_closed_and_read_only(
     }
     before = sorted(str(path) for path in tmp_path.rglob("*"))
     result = p0c2d_preflight.run_preflight(
-        "20.184.144.194", cert_dir / "server.crt", cert_dir / "server.key",
-        tmp_path / "run.pid", tmp_path / "run.ready", tmp_path / "run.json",
-        "main", "a" * 40, "b" * 40, "b" * 40, tmp_path,
-        prefix, wine, thumbprint, dependencies=dependencies,
+        stage="tls-observer", upstream_ip="20.184.144.194",
+        cert_path=cert_dir / "server.crt", key_path=cert_dir / "server.key",
+        pid_file=tmp_path / "run.pid", ready_file=tmp_path / "run.ready",
+        log_path=tmp_path / "run.json", expected_branch="main",
+        expected_head="a" * 40, expected_remote_tip="a" * 40,
+        expected_parent="b" * 40, scratch_path=tmp_path,
+        prefix=prefix, proton_wine=wine, ca_thumbprint=thumbprint,
+        dependencies=dependencies,
     )
     after = sorted(str(path) for path in tmp_path.rglob("*"))
     assert result["pass"] is True
     assert before == after
     failed = p0c2d_preflight.run_preflight(
-        "127.0.0.1", cert_dir / "server.crt", cert_dir / "server.key",
-        tmp_path / "run.pid", tmp_path / "run.ready", tmp_path / "run.json",
-        "main", "a" * 40, "b" * 40, "b" * 40, tmp_path,
-        prefix, wine, thumbprint, dependencies=dependencies,
+        stage="tls-observer", upstream_ip="127.0.0.1",
+        cert_path=cert_dir / "server.crt", key_path=cert_dir / "server.key",
+        pid_file=tmp_path / "run.pid", ready_file=tmp_path / "run.ready",
+        log_path=tmp_path / "run.json", expected_branch="main",
+        expected_head="a" * 40, expected_remote_tip="a" * 40,
+        expected_parent="b" * 40, scratch_path=tmp_path,
+        prefix=prefix, proton_wine=wine, ca_thumbprint=thumbprint,
+        dependencies=dependencies,
     )
     assert failed["pass"] is False
 
@@ -746,7 +755,7 @@ def test_preflight_blocks_each_adversarial_gate(
     thumbprint = wine_trust.thumbprint(ca)
     git_values = {
         "branch": "main", "head": "a" * 40, "parent": "b" * 40,
-        "remote": "b" * 40, "status": "", "ahead": "0\t1",
+        "remote": "a" * 40, "status": "", "ahead": "0\t0",
     }
 
     def command(args):
@@ -776,10 +785,14 @@ def test_preflight_blocks_each_adversarial_gate(
         deps = dict(base)
         deps.update(overrides or {})
         return p0c2d_preflight.run_preflight(
-            "20.184.144.194", cert_dir / "server.crt", cert_dir / "server.key",
-            tmp_path / "out.pid", tmp_path / "out.ready", tmp_path / "out.json",
-            "main", "a" * 40, "b" * 40, "b" * 40, tmp_path,
-            prefix, wine, thumbprint, dependencies=deps,
+            stage="tls-observer", upstream_ip="20.184.144.194",
+            cert_path=cert_dir / "server.crt", key_path=cert_dir / "server.key",
+            pid_file=tmp_path / "out.pid", ready_file=tmp_path / "out.ready",
+            log_path=tmp_path / "out.json", expected_branch="main",
+            expected_head="a" * 40, expected_remote_tip="a" * 40,
+            expected_parent="b" * 40, scratch_path=tmp_path,
+            prefix=prefix, proton_wine=wine, ca_thumbprint=thumbprint,
+            dependencies=deps,
         )
 
     assert run()["pass"] is True
@@ -806,11 +819,13 @@ def test_preflight_blocks_each_adversarial_gate(
     assert result["checks"]["git"]["pass"] is False
 
     unsafe_path = p0c2d_preflight.run_preflight(
-        "20.184.144.194", cert_dir / "server.crt", cert_dir / "server.key",
-        Path(__file__).resolve().parents[1] / "must-not-create.pid",
-        tmp_path / "out.ready", tmp_path / "out.json",
-        "main", "a" * 40, "b" * 40, "b" * 40,
-        Path(__file__).resolve().parents[1], prefix, wine, thumbprint,
+        stage="tls-observer", upstream_ip="20.184.144.194",
+        cert_path=cert_dir / "server.crt", key_path=cert_dir / "server.key",
+        pid_file=Path(__file__).resolve().parents[1] / "must-not-create.pid",
+        ready_file=tmp_path / "out.ready", log_path=tmp_path / "out.json",
+        expected_branch="main", expected_head="a" * 40, expected_remote_tip="a" * 40,
+        expected_parent="b" * 40, scratch_path=Path(__file__).resolve().parents[1],
+        prefix=prefix, proton_wine=wine, ca_thumbprint=thumbprint,
         dependencies=base,
     )
     assert unsafe_path["checks"]["paths"]["pass"] is False
@@ -1008,3 +1023,615 @@ def test_reverse_proxy_fails_closed_as_not_ready() -> None:
     assert reverse_proxy.readiness()["network_path_present"] is False
     with pytest.raises(reverse_proxy.PassthroughNotReady):
         reverse_proxy.serve()
+
+
+# --------------------------------------------------------------------------
+# P0-C2D0-R2: live-preflight contract corrections
+# --------------------------------------------------------------------------
+
+
+def _git_command(values: dict, remote_ref: str = "origin/main"):
+    """Strict mock: an unexpected Git query raises rather than silently passing."""
+    mapping = {
+        ("git", "branch", "--show-current"): "branch",
+        ("git", "rev-parse", "HEAD"): "head",
+        ("git", "rev-parse", "HEAD^"): "parent",
+        ("git", "rev-parse", remote_ref): "remote_tip",
+        ("git", "status", "--porcelain", "--untracked-files=normal"): "status",
+        ("git", "rev-list", "--left-right", "--count", f"{remote_ref}...HEAD"): "ahead_behind",
+    }
+
+    def command(args):
+        return SimpleNamespace(
+            returncode=0, stdout=values[mapping[tuple(args)]] + "\n", stderr=""
+        )
+
+    return command
+
+
+def _safe_preflight_dependencies(command) -> dict:
+    def resolve(host, family):
+        index = (
+            host_redirect.IDENTITY_HOSTS.index(host) + 20
+            if host in host_redirect.IDENTITY_HOSTS else 10
+        )
+        return [f"20.3.3.{index}"] if family == socket.AF_INET else []
+
+    return {
+        "command": command, "environment": {}, "listener_in_use": lambda *_: False,
+        "processes": lambda: [], "resolve": resolve,
+        "read_hosts": lambda: b"127.0.0.1 localhost\n",
+        "tool_exists": lambda _name: True,
+        "wine_presence": lambda *_args: {"status": "absent"},
+    }
+
+
+def _blind_relay_preflight(tmp_path: Path, values: dict, **overrides) -> dict:
+    arguments = {
+        "stage": "blind-relay",
+        "upstream_ip": "20.184.144.194",
+        "pid_file": tmp_path / "relay.pid",
+        "ready_file": tmp_path / "relay.ready",
+        "log_path": tmp_path / "relay.json",
+        "expected_branch": "main",
+        "expected_head": "a" * 40,
+        "expected_remote_tip": "a" * 40,
+        "expected_ahead": 0,
+        "expected_behind": 0,
+        "scratch_path": tmp_path,
+        "dependencies": _safe_preflight_dependencies(_git_command(values)),
+    }
+    arguments.update(overrides)
+    return p0c2d_preflight.run_preflight(**arguments)
+
+
+def _synchronized_git_values() -> dict:
+    return {
+        "branch": "main", "head": "a" * 40, "parent": "b" * 40,
+        "remote_tip": "a" * 40, "status": "", "ahead_behind": "0\t0",
+    }
+
+
+def test_preflight_accepts_the_pushed_synchronized_zero_zero_state(tmp_path: Path) -> None:
+    """The authorized live state is HEAD == origin/main, which R1 could not express."""
+    result = _blind_relay_preflight(tmp_path, _synchronized_git_values())
+    assert result["pass"] is True
+    assert result["checks"]["git"]["pass"] is True
+    assert result["checks"]["git"]["actual"]["ahead"] == 0
+    assert result["checks"]["git"]["actual"]["behind"] == 0
+    assert result["checks"]["git"]["expected"]["ahead"] == 0
+    assert result["checks"]["git"]["expected"]["behind"] == 0
+
+
+def test_preflight_accepts_one_ahead_only_when_explicitly_expected(tmp_path: Path) -> None:
+    values = _synchronized_git_values()
+    values["remote_tip"] = "b" * 40
+    values["ahead_behind"] = "0\t1"
+
+    expected_one_ahead = _blind_relay_preflight(
+        tmp_path, values, expected_remote_tip="b" * 40, expected_ahead=1,
+    )
+    assert expected_one_ahead["pass"] is True
+    assert expected_one_ahead["checks"]["git"]["actual"]["ahead"] == 1
+
+    unexpected = _blind_relay_preflight(tmp_path, values, expected_remote_tip="b" * 40)
+    assert unexpected["checks"]["git"]["pass"] is False
+    assert unexpected["checks"]["git"]["matches"]["ahead"] is False
+    assert unexpected["checks"]["git"]["actual"]["ahead"] == 1
+    assert unexpected["checks"]["git"]["expected"]["ahead"] == 0
+
+
+def test_preflight_reports_unexpected_behind_state(tmp_path: Path) -> None:
+    values = _synchronized_git_values()
+    values["ahead_behind"] = "3\t0"
+    result = _blind_relay_preflight(tmp_path, values)
+    assert result["checks"]["git"]["pass"] is False
+    assert result["checks"]["git"]["matches"]["behind"] is False
+    assert result["checks"]["git"]["actual"]["behind"] == 3
+    assert result["checks"]["git"]["matches"]["ahead"] is True
+
+
+@pytest.mark.parametrize("malformed", ["", "0", "0\t1\t2", "x\ty", "-1\t0", "0 1 2"])
+def test_preflight_fails_closed_on_malformed_rev_list_output(
+    tmp_path: Path, malformed: str
+) -> None:
+    values = _synchronized_git_values()
+    values["ahead_behind"] = malformed
+    result = _blind_relay_preflight(tmp_path, values)
+    assert result["checks"]["git"]["pass"] is False
+    assert "ahead_behind_malformed" in result["checks"]["git"]["errors"]
+    assert result["checks"]["git"]["actual"]["ahead"] is None
+    assert result["checks"]["git"]["actual"]["behind"] is None
+
+
+def test_preflight_fails_closed_when_a_git_query_fails(tmp_path: Path) -> None:
+    def failing(_args):
+        return SimpleNamespace(returncode=128, stdout="", stderr="fatal: synthetic")
+
+    result = _blind_relay_preflight(
+        tmp_path, _synchronized_git_values(),
+        dependencies=_safe_preflight_dependencies(failing),
+    )
+    assert result["checks"]["git"]["pass"] is False
+    assert result["checks"]["git"]["errors"]
+
+
+def test_preflight_fails_closed_when_git_raises(tmp_path: Path) -> None:
+    def raising(_args):
+        raise OSError("synthetic git failure")
+
+    result = _blind_relay_preflight(
+        tmp_path, _synchronized_git_values(),
+        dependencies=_safe_preflight_dependencies(raising),
+    )
+    assert result["checks"]["git"]["pass"] is False
+    assert result["checks"]["git"]["errors"]
+
+
+@pytest.mark.parametrize(
+    ("field", "override"),
+    [
+        ("branch", {"expected_branch": "other"}),
+        ("head", {"expected_head": "c" * 40}),
+        ("remote_tip", {"expected_remote_tip": "d" * 40}),
+    ],
+)
+def test_preflight_reports_identity_mismatches(
+    tmp_path: Path, field: str, override: dict
+) -> None:
+    result = _blind_relay_preflight(tmp_path, _synchronized_git_values(), **override)
+    assert result["checks"]["git"]["pass"] is False
+    assert result["checks"]["git"]["matches"][field] is False
+
+
+def test_preflight_parent_is_optional_and_checked_only_when_supplied(tmp_path: Path) -> None:
+    values = _synchronized_git_values()
+    without_parent = _blind_relay_preflight(tmp_path, values)
+    assert "parent" not in without_parent["checks"]["git"]["matches"]
+
+    with_parent = _blind_relay_preflight(tmp_path, values, expected_parent="b" * 40)
+    assert with_parent["checks"]["git"]["matches"]["parent"] is True
+
+    wrong_parent = _blind_relay_preflight(tmp_path, values, expected_parent="e" * 40)
+    assert wrong_parent["checks"]["git"]["matches"]["parent"] is False
+
+
+def test_preflight_hardcodes_no_commit_hash() -> None:
+    source = (
+        Path(p0c2d_preflight.__file__).read_text(encoding="utf-8")
+    )
+    import re
+
+    assert not re.search(r"\b[0-9a-f]{40}\b", source)
+    assert '"0\\t1"' not in source and "'0\\t1'" not in source
+
+
+def test_blind_relay_stage_passes_with_no_certificate_material(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The blind relay terminates nothing, so no CA path may even be consulted."""
+    def forbidden_certificate_check(*_args, **_kwargs):
+        raise AssertionError("certificate check must not run in the blind-relay stage")
+
+    def forbidden_wine(*_args, **_kwargs):
+        raise AssertionError("Wine must not be inspected in the blind-relay stage")
+
+    monkeypatch.setattr(p0c2d_preflight, "_certificate_check", forbidden_certificate_check)
+    dependencies = _safe_preflight_dependencies(_git_command(_synchronized_git_values()))
+    dependencies["wine_presence"] = forbidden_wine
+
+    before = sorted(str(path) for path in tmp_path.rglob("*"))
+    result = _blind_relay_preflight(
+        tmp_path, _synchronized_git_values(), dependencies=dependencies
+    )
+    after = sorted(str(path) for path in tmp_path.rglob("*"))
+
+    assert result["pass"] is True
+    assert result["stage"] == "blind-relay"
+    assert result["checks"]["certificate"] == {
+        "pass": True, "status": "not_applicable_blind_relay"
+    }
+    assert result["checks"]["ca_absence"] == {
+        "pass": True, "status": "not_applicable_blind_relay"
+    }
+    assert result["checks"]["stage"]["certificate_material_required"] is False
+    assert before == after
+
+
+@pytest.mark.parametrize(
+    "unexpected",
+    [
+        {"cert_path": Path("/nonexistent/server.crt")},
+        {"key_path": Path("/nonexistent/server.key")},
+        {"prefix": Path("/nonexistent/prefix")},
+        {"proton_wine": Path("/nonexistent/wine")},
+        {"ca_thumbprint": "A" * 40},
+    ],
+)
+def test_blind_relay_stage_rejects_unexpected_certificate_arguments(
+    tmp_path: Path, unexpected: dict
+) -> None:
+    result = _blind_relay_preflight(tmp_path, _synchronized_git_values(), **unexpected)
+    assert result["pass"] is False
+    assert result["checks"]["stage"]["pass"] is False
+    assert result["checks"]["stage"]["unexpected_arguments"]
+
+
+def test_tls_observer_stage_requires_its_certificate_inputs(tmp_path: Path) -> None:
+    result = p0c2d_preflight.run_preflight(
+        stage="tls-observer", upstream_ip="20.184.144.194",
+        pid_file=tmp_path / "obs.pid", ready_file=tmp_path / "obs.ready",
+        log_path=tmp_path / "obs.json", expected_branch="main",
+        expected_head="a" * 40, expected_remote_tip="a" * 40,
+        scratch_path=tmp_path,
+        dependencies=_safe_preflight_dependencies(_git_command(_synchronized_git_values())),
+    )
+    assert result["pass"] is False
+    assert result["checks"]["stage"]["pass"] is False
+    assert result["checks"]["stage"]["missing_arguments"] == ["cert", "key"]
+    assert result["checks"]["certificate"]["reason"] == "missing_certificate_inputs"
+
+
+def test_preflight_stage_is_never_inferred(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="never inferred"):
+        _blind_relay_preflight(tmp_path, _synchronized_git_values(), stage="whatever")
+
+
+# --- upstream TLS probe ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "rejected",
+    [
+        "settings.svc.halowaypoint.com", "localhost", "", "   ", "20.184.144.194:443",
+        "127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1", "169.254.1.1",
+        "224.0.0.1", "239.255.255.250", "233.252.0.1", "0.0.0.0", "255.255.255.255",
+        "240.0.0.1", "100.64.0.1", "192.0.2.1", "198.51.100.5", "203.0.113.9",
+        "198.18.0.1", "2606:4700::1111", "::1", "not-an-address",
+    ],
+)
+def test_upstream_probe_rejects_every_unauthorized_candidate(rejected: str) -> None:
+    with pytest.raises(upstream_probe.UpstreamProbeError):
+        upstream_probe.classify_candidate_ip(rejected)
+    with pytest.raises(upstream_probe.UpstreamProbeError):
+        upstream_probe.probe(rejected)
+
+
+def test_upstream_probe_accepts_a_global_unicast_candidate_without_connecting() -> None:
+    address = upstream_probe.classify_candidate_ip("20.184.144.194")
+    assert str(address) == "20.184.144.194"
+    assert upstream_probe.validate_production_target(
+        "SETTINGS.SVC.HALOWAYPOINT.COM.", "20.184.144.194", 443
+    ) == address
+
+
+def test_upstream_probe_rejects_a_wrong_hostname_or_port() -> None:
+    with pytest.raises(upstream_probe.UpstreamProbeError, match="hostname"):
+        upstream_probe.validate_production_target(
+            "gamecms-hacs.svc.halowaypoint.com", "20.184.144.194", 443
+        )
+    with pytest.raises(upstream_probe.UpstreamProbeError, match="port"):
+        upstream_probe.validate_production_target(
+            upstream_probe.AUTHORIZED_HOST, "20.184.144.194", 8443
+        )
+
+
+def test_upstream_probe_synthetic_entry_point_cannot_reach_production() -> None:
+    with pytest.raises(upstream_probe.UpstreamProbeError, match="loopback-only"):
+        upstream_probe.synthetic_probe("20.184.144.194", 8443, "x.invalid", Path("/dev/null"))
+    with pytest.raises(upstream_probe.UpstreamProbeError, match="high unprivileged"):
+        upstream_probe.synthetic_probe("127.0.0.1", 443, "x.invalid", Path("/dev/null"))
+    with pytest.raises(upstream_probe.UpstreamProbeError, match="production hostname"):
+        upstream_probe.synthetic_probe(
+            "127.0.0.1", 8443, upstream_probe.AUTHORIZED_HOST, Path("/dev/null")
+        )
+
+
+class _SyntheticTlsServer:
+    """One-shot loopback TLS server that records whether the client sent data."""
+
+    def __init__(self, cert_dir: Path, alpn: list[str] | None = None):
+        self.port = _free_port()
+        self.application_bytes = None
+        self.ready = threading.Event()
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(cert_dir / "server.crt", cert_dir / "server.key")
+        if alpn:
+            context.set_alpn_protocols(alpn)
+        self._context = context
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self) -> None:
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", self.port))
+            listener.listen(1)
+            listener.settimeout(5)
+            self.ready.set()
+            try:
+                raw, _ = listener.accept()
+            except (TimeoutError, OSError):
+                return
+            try:
+                with self._context.wrap_socket(raw, server_side=True) as tls:
+                    tls.settimeout(2)
+                    try:
+                        self.application_bytes = tls.recv(4096)
+                    except (OSError, ssl.SSLError):
+                        self.application_bytes = b""
+            except (OSError, ssl.SSLError):
+                raw.close()
+
+    def __enter__(self) -> _SyntheticTlsServer:
+        self._thread.start()
+        assert self.ready.wait(3)
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self._thread.join(6)
+        assert not self._thread.is_alive()
+
+
+def test_upstream_probe_collects_metadata_and_sends_no_application_data(
+    tmp_path: Path,
+) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    with _SyntheticTlsServer(cert_dir, alpn=["http/1.1"]) as server:
+        record = upstream_probe.synthetic_probe(
+            "127.0.0.1", server.port, "settings-test.invalid", cert_dir / "ca.crt"
+        )
+
+    assert record["verified"] is True
+    assert record["tls_completed"] is True
+    assert record["error_class"] is None
+    assert record["sni"] == "settings-test.invalid"
+    assert record["hostname_verification"] is True
+    assert record["verify_mode"] == "CERT_REQUIRED"
+    assert record["advertised_alpn"] == ["h2", "http/1.1"]
+    assert record["negotiated_alpn"] == "http/1.1"
+    assert record["tls_version"].startswith("TLSv1.")
+    assert record["cipher_name"] and isinstance(record["cipher_bits"], int)
+    assert record["certificate_subject"] == "CN=settings-test.invalid"
+    assert "P0-C2A Local Test CA" in record["certificate_issuer"]
+    assert len(record["certificate_sha256_fingerprint"].split(":")) == 32
+    assert record["application_bytes_sent"] == 0
+    assert record["http_request_sent"] is False
+    # The server side is the authority on whether a byte was written: it
+    # completed the handshake and then read end-of-stream, not a request.
+    assert server.application_bytes == b""
+
+
+def test_upstream_probe_metadata_contains_no_certificate_body(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    with _SyntheticTlsServer(cert_dir) as server:
+        record = upstream_probe.synthetic_probe(
+            "127.0.0.1", server.port, "settings-test.invalid", cert_dir / "ca.crt"
+        )
+    blob = json.dumps(record)
+    assert "BEGIN CERTIFICATE" not in blob and "MII" not in blob
+    pem = (cert_dir / "server.crt").read_text(encoding="utf-8")
+    body = "".join(pem.splitlines()[1:-1])
+    assert body[:32] not in blob
+
+
+def test_upstream_probe_rejects_an_untrusted_certificate(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    other_ca = tmp_path / "other"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    local_ca.generate(
+        other_ca, hostname="unrelated.invalid", days=1, name_constraints=False
+    )
+    with _SyntheticTlsServer(cert_dir) as server:
+        record = upstream_probe.synthetic_probe(
+            "127.0.0.1", server.port, "settings-test.invalid", other_ca / "ca.crt"
+        )
+    assert record["verified"] is False
+    assert record["error_class"] == "SSLCertVerificationError"
+    assert record["certificate_sha256_fingerprint"] is None
+
+
+def test_upstream_probe_rejects_a_hostname_mismatch(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    with _SyntheticTlsServer(cert_dir) as server:
+        record = upstream_probe.synthetic_probe(
+            "127.0.0.1", server.port, "different-name.invalid", cert_dir / "ca.crt"
+        )
+    assert record["verified"] is False
+    assert record["error_class"] == "SSLCertVerificationError"
+    assert "hostname mismatch" in (record["error_detail"] or "").lower()
+
+
+def test_upstream_probe_records_a_refused_connection_without_raising(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    record = upstream_probe.synthetic_probe(
+        "127.0.0.1", _free_port(), "settings-test.invalid", cert_dir / "ca.crt", timeout=2.0
+    )
+    assert record["verified"] is False
+    assert record["tls_completed"] is False
+    assert record["error_class"] == "ConnectionRefusedError"
+
+
+def test_upstream_probe_leaves_no_listener_behind(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(
+        cert_dir, hostname="settings-test.invalid", days=1, name_constraints=False
+    )
+    with _SyntheticTlsServer(cert_dir) as server:
+        port = server.port
+        upstream_probe.synthetic_probe(
+            "127.0.0.1", port, "settings-test.invalid", cert_dir / "ca.crt"
+        )
+    with socket.socket() as probe_socket:
+        probe_socket.settimeout(1)
+        assert probe_socket.connect_ex(("127.0.0.1", port)) != 0
+
+
+# --- relay live bounds -----------------------------------------------------
+
+
+def test_relay_recommended_live_bounds_are_internally_consistent() -> None:
+    total = prelaunch_relay.RECOMMENDED_LIVE_SECONDS
+    idle = prelaunch_relay.RECOMMENDED_LIVE_IDLE_SECONDS
+    observed = prelaunch_relay.OBSERVED_LAUNCH_TO_TITLE_SERVICE_SECONDS
+    # The hard maximum is unchanged; the recommendation lives inside it.
+    assert prelaunch_relay.MAX_SECONDS == 300.0
+    assert total <= prelaunch_relay.MAX_SECONDS
+    # Enough margin over the measured launch-to-title-service delay to cover
+    # Steam startup and operator latency.
+    assert total >= observed * 2
+    # A quiet but healthy settings connection must not be torn down early.
+    assert idle >= total
+    assert prelaunch_relay.RECOMMENDED_LIVE_MAX_CONNECTIONS > 1
+    assert prelaunch_relay.RECOMMENDED_LIVE_MAX_CONNECTIONS <= prelaunch_relay.MAX_CONNECTIONS
+    prelaunch_relay.validate_bounds(
+        prelaunch_relay.RECOMMENDED_LIVE_MAX_CONNECTIONS, total, idle
+    )
+
+
+def test_relay_does_not_exit_after_first_connection_while_lingering(tmp_path: Path) -> None:
+    """A completed connection must not end the run while a redirect is installed."""
+    upstream_port, relay_port = _free_port(), _free_port()
+    upstream_ready = threading.Event()
+
+    def upstream() -> None:
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", upstream_port))
+            listener.listen(2)
+            listener.settimeout(4)
+            upstream_ready.set()
+            for _ in range(2):
+                try:
+                    conn, _ = listener.accept()
+                except (TimeoutError, OSError):
+                    return
+                with conn:
+                    while conn.recv(1024):
+                        pass
+
+    upstream_thread = threading.Thread(target=upstream, daemon=True)
+    upstream_thread.start()
+    assert upstream_ready.wait(2)
+
+    ready = threading.Event()
+    result: dict = {}
+
+    def relay() -> None:
+        result["state"] = prelaunch_relay.serve(
+            "127.0.0.1", relay_port, "synthetic.test", "127.0.0.1", upstream_port,
+            tmp_path / "linger.json", 2, 2.5, 2.5,
+            enforce_production=False, ready_event=ready, linger_until_deadline=True,
+        )
+
+    relay_thread = threading.Thread(target=relay, daemon=True)
+    relay_thread.start()
+    assert ready.wait(2)
+
+    with socket.create_connection(("127.0.0.1", relay_port), timeout=2) as first:
+        first.sendall(b"first")
+    time.sleep(0.4)
+    # The relay is still listening after the first connection finished.
+    assert relay_thread.is_alive()
+    with socket.create_connection(("127.0.0.1", relay_port), timeout=2) as second:
+        second.sendall(b"second")
+
+    relay_thread.join(5)
+    assert not relay_thread.is_alive()
+    state = result["state"]
+    assert len(state.connections) == 2
+    assert state.exit_reason in {"total_deadline", "connection_cap_reached_lingering"}
+
+
+def test_relay_records_over_cap_connections_instead_of_exiting(tmp_path: Path) -> None:
+    upstream_port, relay_port = _free_port(), _free_port()
+    upstream_ready = threading.Event()
+
+    def upstream() -> None:
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", upstream_port))
+            listener.listen(1)
+            listener.settimeout(4)
+            upstream_ready.set()
+            try:
+                conn, _ = listener.accept()
+            except (TimeoutError, OSError):
+                return
+            with conn:
+                while conn.recv(1024):
+                    pass
+
+    upstream_thread = threading.Thread(target=upstream, daemon=True)
+    upstream_thread.start()
+    assert upstream_ready.wait(2)
+
+    ready = threading.Event()
+    result: dict = {}
+
+    def relay() -> None:
+        result["state"] = prelaunch_relay.serve(
+            "127.0.0.1", relay_port, "synthetic.test", "127.0.0.1", upstream_port,
+            tmp_path / "cap.json", 1, 2.0, 2.0,
+            enforce_production=False, ready_event=ready, linger_until_deadline=True,
+        )
+
+    relay_thread = threading.Thread(target=relay, daemon=True)
+    relay_thread.start()
+    assert ready.wait(2)
+
+    with socket.create_connection(("127.0.0.1", relay_port), timeout=2) as first:
+        first.sendall(b"capped")
+        time.sleep(0.3)
+        # Cap already reached: the next connection is closed and recorded, and
+        # the relay stays up rather than leaving the redirect pointing nowhere.
+        with socket.create_connection(("127.0.0.1", relay_port), timeout=2):
+            pass
+        assert relay_thread.is_alive()
+
+    relay_thread.join(5)
+    assert not relay_thread.is_alive()
+    state = result["state"]
+    classes = [entry["error_class"] for entry in state.connections]
+    assert "ConnectionCapReached" in classes
+    assert state.exit_reason == "connection_cap_reached_lingering"
+    persisted = json.loads((tmp_path / "cap.json").read_text(encoding="utf-8"))
+    assert persisted["exit_reason"] == "connection_cap_reached_lingering"
+    assert "capped" not in json.dumps(persisted)
+
+
+def test_relay_exit_reason_is_recorded_for_a_deadline_run(tmp_path: Path) -> None:
+    relay_port, upstream_port = _free_port(), _free_port()
+    state = prelaunch_relay.serve(
+        "127.0.0.1", relay_port, "synthetic.test", "127.0.0.1", upstream_port,
+        tmp_path / "deadline-reason.json", 1, 0.4, 0.4, enforce_production=False,
+    )
+    assert state.exit_reason == "total_deadline"
+    persisted = json.loads((tmp_path / "deadline-reason.json").read_text(encoding="utf-8"))
+    assert persisted["exit_reason"] == "total_deadline"
+    assert persisted["connection_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "rejected",
+    ["224.0.0.1", "239.255.255.250", "255.255.255.255", "240.0.0.1", "0.0.0.0", "100.64.0.1"],
+)
+def test_relay_production_contract_rejects_non_unicast_upstreams(rejected: str) -> None:
+    """`is_global` alone lets IPv4 multicast through; each class is rejected explicitly."""
+    with pytest.raises(prelaunch_relay.RelaySafetyError):
+        prelaunch_relay.validate_production_contract(
+            prelaunch_relay.AUTHORIZED_BIND, prelaunch_relay.AUTHORIZED_HOST, rejected, 443
+        )

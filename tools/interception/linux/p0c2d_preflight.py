@@ -3,6 +3,22 @@
 The checker performs only file reads, process/socket-table inspection, DNS
 resolution, and Git queries with optional locks disabled. It never binds a
 socket, starts Wine, changes a store, edits hosts, or terminates a process.
+
+**Stages.** The expected repository relationship and the certificate contract
+both depend on which live rung is being gated, so both are supplied explicitly
+rather than inferred:
+
+- ``blind-relay`` forwards raw TLS bytes and terminates nothing. It requires no
+  CA, certificate, key, or Wine prefix, so no certificate file is read and no
+  Wine registry is inspected. Supplying certificate material is itself a
+  failure, because it signals the operator is running the wrong contract.
+- ``tls-observer`` terminates TLS and therefore requires its certificate inputs,
+  plus the optional Wine CA-absence check when a prefix is supplied.
+
+The Git expectation is likewise explicit: ahead and behind are computed
+separately and compared to supplied values, so a pushed-and-synchronized tip
+(0/0) and a local-only review state (1/0) are both expressible and neither is
+assumed. No commit hash is hardcoded.
 """
 
 from __future__ import annotations
@@ -29,6 +45,11 @@ import prelaunch_relay  # noqa: E402
 import wine_trust  # noqa: E402
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+STAGE_BLIND_RELAY = "blind-relay"
+STAGE_TLS_OBSERVER = "tls-observer"
+STAGES = (STAGE_BLIND_RELAY, STAGE_TLS_OBSERVER)
+DEFAULT_REMOTE_REF = "origin/main"
+CA_ARGUMENT_NAMES = ("cert", "key", "prefix", "proton_wine", "ca_thumbprint")
 PROXY_VARIABLES = (
     "http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"
 )
@@ -116,34 +137,81 @@ def _dependencies(overrides: dict | None) -> dict:
     return result
 
 
-def _run_git_checks(expected_branch: str, expected_head: str, expected_parent: str,
-                    expected_remote_tip: str, command) -> dict:
+def _parse_ahead_behind(text: str | None) -> tuple[int | None, int | None]:
+    """Split ``rev-list --left-right --count <remote>...HEAD`` into (ahead, behind).
+
+    The left count is commits reachable only from the remote ref (behind); the
+    right count is commits reachable only from HEAD (ahead). Anything that is
+    not exactly two non-negative integers is treated as malformed.
+    """
+    fields = (text or "").split()
+    if len(fields) != 2:
+        return None, None
+    try:
+        behind, ahead = int(fields[0]), int(fields[1])
+    except ValueError:
+        return None, None
+    if behind < 0 or ahead < 0:
+        return None, None
+    return ahead, behind
+
+
+def _run_git_checks(expected_branch: str, expected_head: str, expected_remote_tip: str,
+                    expected_ahead: int, expected_behind: int, command,
+                    expected_parent: str | None = None,
+                    remote_ref: str = DEFAULT_REMOTE_REF) -> dict:
     queries = {
         "branch": ["git", "branch", "--show-current"],
         "head": ["git", "rev-parse", "HEAD"],
-        "parent": ["git", "rev-parse", "HEAD^"],
-        "remote_tip": ["git", "rev-parse", "origin/main"],
+        "remote_tip": ["git", "rev-parse", remote_ref],
         "status": ["git", "status", "--porcelain", "--untracked-files=normal"],
-        "ahead_behind": ["git", "rev-list", "--left-right", "--count", "origin/main...HEAD"],
+        "ahead_behind": ["git", "rev-list", "--left-right", "--count", f"{remote_ref}...HEAD"],
     }
-    values = {}
+    if expected_parent is not None:
+        queries["parent"] = ["git", "rev-parse", "HEAD^"]
+    values: dict[str, str | None] = {}
     errors = []
     for name, args in queries.items():
-        result = command(args)
+        try:
+            result = command(args)
+        except (OSError, subprocess.SubprocessError):
+            errors.append(name)
+            values[name] = None
+            continue
         if result.returncode != 0:
             errors.append(name)
             values[name] = None
         else:
             values[name] = result.stdout.strip()
+    ahead, behind = _parse_ahead_behind(values.get("ahead_behind"))
+    if ahead is None or behind is None:
+        errors.append("ahead_behind_malformed")
     matches = {
         "branch": values.get("branch") == expected_branch,
         "head": values.get("head") == expected_head,
-        "parent": values.get("parent") == expected_parent,
         "remote_tip": values.get("remote_tip") == expected_remote_tip,
         "clean": values.get("status") == "",
-        "ahead_behind": values.get("ahead_behind") == "0\t1",
+        "ahead": ahead is not None and ahead == expected_ahead,
+        "behind": behind is not None and behind == expected_behind,
     }
-    return {"pass": not errors and all(matches.values()), "matches": matches, "errors": errors}
+    expected = {
+        "branch": expected_branch, "head": expected_head,
+        "remote_tip": expected_remote_tip, "ahead": expected_ahead,
+        "behind": expected_behind, "clean": True,
+    }
+    actual = {
+        "branch": values.get("branch"), "head": values.get("head"),
+        "remote_tip": values.get("remote_tip"), "ahead": ahead, "behind": behind,
+        "clean": values.get("status") == "",
+    }
+    if expected_parent is not None:
+        matches["parent"] = values.get("parent") == expected_parent
+        expected["parent"] = expected_parent
+        actual["parent"] = values.get("parent")
+    return {
+        "pass": not errors and all(matches.values()), "matches": matches,
+        "errors": errors, "expected": expected, "actual": actual, "remote_ref": remote_ref,
+    }
 
 
 def _certificate_check(cert_path: Path, key_path: Path) -> dict:
@@ -256,19 +324,24 @@ def _path_check(scratch_path: Path, output_paths: list[Path]) -> dict:
     return {"pass": not reasons, "reasons": reasons}
 
 
-def run_preflight(upstream_ip: str, cert_path: Path, key_path: Path,
+def run_preflight(*, stage: str, upstream_ip: str,
                   pid_file: Path, ready_file: Path, log_path: Path,
-                  expected_branch: str, expected_head: str, expected_parent: str,
-                  expected_remote_tip: str, scratch_path: Path,
+                  expected_branch: str, expected_head: str, expected_remote_tip: str,
+                  scratch_path: Path, expected_ahead: int = 0, expected_behind: int = 0,
+                  expected_parent: str | None = None, remote_ref: str = DEFAULT_REMOTE_REF,
+                  cert_path: Path | None = None, key_path: Path | None = None,
                   prefix: Path | None = None, proton_wine: Path | None = None,
                   ca_thumbprint: str | None = None, require_steam_closed: bool = True,
                   required_tools: tuple[str, ...] = ("git", "python3"),
                   dependencies: dict | None = None) -> dict:
+    if stage not in STAGES:
+        raise ValueError(f"stage must be one of {STAGES}; it is never inferred")
     deps = _dependencies(dependencies)
     checks: dict[str, dict] = {}
 
     checks["git"] = _run_git_checks(
-        expected_branch, expected_head, expected_parent, expected_remote_tip, deps["command"]
+        expected_branch, expected_head, expected_remote_tip,
+        expected_ahead, expected_behind, deps["command"], expected_parent, remote_ref,
     )
     proxy_values = {
         name: bool(deps["environment"].get(name)) for name in PROXY_VARIABLES
@@ -309,7 +382,6 @@ def run_preflight(upstream_ip: str, cert_path: Path, key_path: Path,
     }
     checks["hosts"] = _hosts_check(deps["read_hosts"], deps["resolve"])
     checks["identity_hosts"] = _identity_check(deps["resolve"])
-    checks["certificate"] = _certificate_check(Path(cert_path), Path(key_path))
     checks["paths"] = _path_check(
         Path(scratch_path), [Path(pid_file), Path(ready_file), Path(log_path)]
     )
@@ -319,53 +391,94 @@ def run_preflight(upstream_ip: str, cert_path: Path, key_path: Path,
         tool_results[str(proton_wine)] = Path(proton_wine).is_file() and os.access(proton_wine, os.X_OK)
     checks["tools"] = {"pass": all(tool_results.values()), "available": tool_results}
 
-    supplied = (prefix is not None, proton_wine is not None, ca_thumbprint is not None)
-    if any(supplied) and not all(supplied):
-        checks["ca_absence"] = {
-            "pass": False, "reason": "prefix, proton_wine, and ca_thumbprint are required together"
+    certificate_arguments = dict(zip(
+        CA_ARGUMENT_NAMES, (cert_path, key_path, prefix, proton_wine, ca_thumbprint)
+    ))
+    supplied_names = sorted(name for name, value in certificate_arguments.items() if value is not None)
+    if stage == STAGE_BLIND_RELAY:
+        # A blind relay terminates nothing, so certificate material is not just
+        # unnecessary — its presence means the operator is running the wrong
+        # contract, and that is reported rather than ignored.
+        checks["stage"] = {
+            "pass": not supplied_names, "stage": stage,
+            "certificate_material_required": False,
+            "unexpected_arguments": supplied_names,
         }
-    elif all(supplied):
-        try:
-            normalized = wine_trust.normalize_thumbprint(ca_thumbprint)
-            if not Path(prefix).is_dir() or not _outside_repository(Path(prefix)):
-                raise ValueError("Wine prefix must be an existing directory outside repository")
-            presence = deps["wine_presence"](normalized, Path(prefix))
-            checks["ca_absence"] = {
-                "pass": presence["status"] == "absent", "status": presence["status"],
-                "inspection": "read-only system.reg parse; Wine was not started",
-            }
-        except (OSError, ValueError) as exc:
-            checks["ca_absence"] = {"pass": False, "reason": type(exc).__name__}
+        checks["certificate"] = {"pass": True, "status": "not_applicable_blind_relay"}
+        checks["ca_absence"] = {"pass": True, "status": "not_applicable_blind_relay"}
     else:
-        checks["ca_absence"] = {"pass": True, "status": "not_requested"}
+        missing = [
+            name for name, value in (("cert", cert_path), ("key", key_path)) if value is None
+        ]
+        checks["stage"] = {
+            "pass": not missing, "stage": stage,
+            "certificate_material_required": True,
+            "missing_arguments": missing,
+        }
+        checks["certificate"] = (
+            _certificate_check(Path(cert_path), Path(key_path)) if not missing
+            else {"pass": False, "reason": "missing_certificate_inputs"}
+        )
+        supplied = (prefix is not None, proton_wine is not None, ca_thumbprint is not None)
+        if any(supplied) and not all(supplied):
+            checks["ca_absence"] = {
+                "pass": False,
+                "reason": "prefix, proton_wine, and ca_thumbprint are required together",
+            }
+        elif all(supplied):
+            try:
+                normalized = wine_trust.normalize_thumbprint(ca_thumbprint)
+                if not Path(prefix).is_dir() or not _outside_repository(Path(prefix)):
+                    raise ValueError("Wine prefix must be an existing directory outside repository")
+                presence = deps["wine_presence"](normalized, Path(prefix))
+                checks["ca_absence"] = {
+                    "pass": presence["status"] == "absent", "status": presence["status"],
+                    "inspection": "read-only system.reg parse; Wine was not started",
+                }
+            except (OSError, ValueError) as exc:
+                checks["ca_absence"] = {"pass": False, "reason": type(exc).__name__}
+        else:
+            checks["ca_absence"] = {"pass": True, "status": "not_requested"}
 
     passed = all(item["pass"] for item in checks.values())
-    return {"format": "p0c2d0-preflight-v2", "pass": passed, "checks": checks}
+    return {"format": "p0c2d0r2-preflight-v3", "pass": passed, "stage": stage, "checks": checks}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--stage", choices=STAGES, required=True,
+                        help="live contract being gated; never inferred from other arguments")
     parser.add_argument("--upstream-ip", required=True)
-    parser.add_argument("--cert", type=Path, required=True)
-    parser.add_argument("--key", type=Path, required=True)
     parser.add_argument("--pid-file", type=Path, required=True)
     parser.add_argument("--ready-file", type=Path, required=True)
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("--scratch", type=Path, required=True)
     parser.add_argument("--expected-branch", required=True)
     parser.add_argument("--expected-head", required=True)
-    parser.add_argument("--expected-parent", required=True)
     parser.add_argument("--expected-remote-tip", required=True)
-    parser.add_argument("--prefix", type=Path)
-    parser.add_argument("--proton-wine", type=Path)
-    parser.add_argument("--ca-thumbprint")
+    parser.add_argument("--expected-ahead", type=int, default=0)
+    parser.add_argument("--expected-behind", type=int, default=0)
+    parser.add_argument("--expected-parent", default=None,
+                        help="optional; checked only when supplied")
+    parser.add_argument("--remote-ref", default=DEFAULT_REMOTE_REF)
+    parser.add_argument("--cert", type=Path, help="tls-observer stage only")
+    parser.add_argument("--key", type=Path, help="tls-observer stage only")
+    parser.add_argument("--prefix", type=Path, help="tls-observer stage only")
+    parser.add_argument("--proton-wine", type=Path, help="tls-observer stage only")
+    parser.add_argument("--ca-thumbprint", help="tls-observer stage only")
     parser.add_argument("--allow-steam-running", action="store_true")
     args = parser.parse_args()
     result = run_preflight(
-        args.upstream_ip, args.cert, args.key, args.pid_file, args.ready_file, args.log,
-        args.expected_branch, args.expected_head, args.expected_parent,
-        args.expected_remote_tip, args.scratch, args.prefix, args.proton_wine,
-        args.ca_thumbprint, not args.allow_steam_running,
+        stage=args.stage, upstream_ip=args.upstream_ip,
+        pid_file=args.pid_file, ready_file=args.ready_file, log_path=args.log,
+        expected_branch=args.expected_branch, expected_head=args.expected_head,
+        expected_remote_tip=args.expected_remote_tip,
+        expected_ahead=args.expected_ahead, expected_behind=args.expected_behind,
+        expected_parent=args.expected_parent, remote_ref=args.remote_ref,
+        scratch_path=args.scratch, cert_path=args.cert, key_path=args.key,
+        prefix=args.prefix, proton_wine=args.proton_wine,
+        ca_thumbprint=args.ca_thumbprint,
+        require_steam_closed=not args.allow_steam_running,
     )
     print(json.dumps(result, indent=2))
     return 0 if result["pass"] else 2
