@@ -75,17 +75,19 @@ P0 may complete only when:
    `evidence/p0c2d_live_blind_relay/`). Exact rollback completed before the relay deadline and a
    separate normal post-rollback launch succeeded. This proves opaque transport only; no TLS was
    terminated and no request, response, settings authority, CA acceptance, or pinning verdict was
-   observed. The follow-on **P0-C2D1 exact-host TLS/SNI/ALPN observation rung was authorized and
-   halted at its starting gate**, before the direct baseline and before any live action: the
-   observer's 120 s hard runtime bound could not cover the measured live timeline, whose
-   redirect-verify-to-connect interval alone is 75 s (`E-P0C2D-004`) with the observer's clock
-   starting before it. No certificate was generated, no observer started, no redirect installed, and
-   no MCC behaviour or TLS verdict observed, so no A–F classification is possible. **P0-C2D1-R0**
-   corrects the observer's bounds and exit accounting under synthetic validation
-   (`E-P0C2D1R0-001` through `E-P0C2D1R0-004`,
-   `evidence/p0c2d1r0_observer_bounds_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`). MCC
-   certificate acceptance and pinning therefore remain **unresolved for the fourth rung running**,
-   and **P0-C2E manifest discovery remains not started**.
+   observed. The first **P0-C2D1 exact-host TLS/SNI/ALPN observation** attempt halted before live
+   action when its 120 s bound was found insufficient; **P0-C2D1-R0** then raised the shared hard
+   maximum to 300 s, recommended 240 s/eight connections, and added explicit exit accounting under
+   synthetic validation (`E-P0C2D1R0-001` through `E-P0C2D1R0-004`,
+   `evidence/p0c2d1r0_observer_bounds_correction/`). A later authorized live attempt ended
+   **`E. SNI / OBSERVER CONTRACT FAILURE`**: exact certificate/trust and redirect scope checks
+   passed, but setup latency consumed the observer window; it recorded `total_deadline`, 240.103 s,
+   and zero observations, and Steam launch was issued after expiry (`E-P0C2D1-001` through
+   `E-P0C2D1-005`, `evidence/p0c2d1_tls_observation/`). This is not `D. OBSERVER NOT CONTACTED`
+   and establishes no MCC TLS, SNI, ALPN, certificate-acceptance, or pinning verdict. Exact hosts
+   rollback, prefix trust removal, certificate deletion, and a separate normal launch succeeded
+   (`E-P0C2D1-006`). P0-C2D1 remains incomplete, MCC certificate acceptance/pinning remains
+   **unresolved**, and **P0-C2E manifest discovery remains not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.

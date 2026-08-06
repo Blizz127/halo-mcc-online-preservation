@@ -1,0 +1,67 @@
+P0-C2D1 rollback and restoration verification
+===============================================
+
+Evidence ID: E-P0C2D1-006
+
+Classification boundary
+-----------------------
+  PASS classified E. SNI / OBSERVER CONTRACT FAILURE
+  PASS observer exit reason was total_deadline
+  PASS observer elapsed 240.103 seconds against a 240.0-second bound
+  PASS observer recorded zero observations
+  PASS Steam launch command was issued after observer expiry
+  PASS no D. OBSERVER NOT CONTACTED claim was made
+  PASS no certificate-acceptance or pinning claim was made
+
+Exact /etc/hosts rollback
+-------------------------
+  PASS exact prior bytes restored
+  PASS SHA-256 restored:
+       58ab06ea4280182a38c8176bc4eda7d83815cc08aec9e9ed082a71a47eebf28b
+  PASS size restored: 604 bytes
+  PASS inode preserved: 4621125
+  PASS mode restored: 0644
+  PASS P0-C2D sentinel absent
+  PASS exact selected-host entry absent
+  PASS unrelated hosts lines preserved byte-for-byte
+
+Resolver and scope restoration
+------------------------------
+  PASS accepted resolver-cache flush command completed
+  PASS settings.svc.halowaypoint.com resolved normally after rollback
+  PASS all six protected identity hosts resolved to global, nonlocal addresses
+  PASS no protected identity host resolved to 127.0.0.77 or loopback
+
+Observer cleanup
+----------------
+  PASS observer reached its bounded deadline and ended
+  PASS ready file removed
+  PASS PID file removed
+  PASS 127.0.0.77:443 closed
+  PASS no relay, observer, reverse-proxy, metadata-proxy, or packet-capture process remained
+  PASS only the fixed-schema sanitized observer document was exported
+
+Prefix trust and certificate cleanup
+------------------------------------
+  PASS exact CA thumbprint removed from the MCC Proton-Wine Root store
+  PASS post-delete Wine query reported absent
+  PASS independent read-only system.reg parse reported absent
+  PASS host OS trust store was never modified
+  PASS temporary CA, leaf, and private-key files removed
+
+Normal-operation restoration
+----------------------------
+  PASS operator launched Steam and MCC normally after complete rollback and trust removal
+  PASS Microsoft/Xbox identity succeeded
+  PASS MCC main menu loaded
+  PASS no certificate or service error appeared
+  PASS MCC quit normally
+  PASS Steam normal shutdown request completed
+  PASS no MCC, Proton/Wine game, Steam, or Steam-helper process remained at final check
+
+Repository and privacy boundary
+-------------------------------
+  PASS repository remained at the authorized starting commit during the live attempt
+  PASS working tree remained clean until evidence creation
+  PASS no payload, raw traffic, key, certificate body, credential, or account identifier recorded
+  PASS private prefix, Proton, and scratch paths are represented only by placeholders

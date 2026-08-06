@@ -1,0 +1,28 @@
+{
+  "format": "p0c2d1-certificate-metadata-v1",
+  "evidence_id": "E-P0C2D1-002",
+  "generated_at": "2026-08-06T15:41:28-05:00",
+  "ca_subject": "O=halo-mcc-online-preservation,CN=P0-C2A Local Test CA (DO NOT TRUST)",
+  "ca_sha1_thumbprint": "6C13F2627F682DB2462A316510A27B56325C1FA9",
+  "ca_sha256_fingerprint": "7c:3d:ce:fe:50:39:4f:3b:18:28:a1:5d:70:b9:81:41:4e:64:fa:6d:a7:99:42:ee:83:13:54:8a:62:54:47:39",
+  "leaf_sha256_fingerprint": "21:a9:67:c2:b9:bd:ee:cf:88:48:6c:db:0a:91:84:5d:62:7e:dc:23:7d:51:b4:3d:a2:af:63:0a:46:d7:dc:ac",
+  "ca_not_before": "2026-08-06T20:36:28+00:00",
+  "ca_not_after": "2026-08-08T20:36:28+00:00",
+  "leaf_not_before": "2026-08-06T20:36:28+00:00",
+  "leaf_not_after": "2026-08-08T20:36:28+00:00",
+  "leaf_san_dns_names": [
+    "settings.svc.halowaypoint.com"
+  ],
+  "ca_name_constraints_permitted_dns": [
+    "settings.svc.halowaypoint.com"
+  ],
+  "leaf_key_matched_certificate": true,
+  "scratch_outside_repository": true,
+  "scratch_path_recorded": "<LOCAL_SCRATCH>/p0c2d1-live",
+  "directory_mode": "0o700",
+  "file_modes": "0o600",
+  "symlinks": false,
+  "certificate_bodies_recorded": false,
+  "private_keys_recorded": false,
+  "all_ca_leaf_and_key_files_removed_after_verified_trust_removal": true
+}

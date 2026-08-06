@@ -1,0 +1,20 @@
+{
+  "format": "p0c2d1-prefix-trust-lifecycle-v1",
+  "evidence_id": "E-P0C2D1-003",
+  "scope": "MCC Proton-Wine prefix Root store only",
+  "prefix": "<MCC_PROTON_PREFIX>",
+  "proton_wine": "<PROTON_WINE>",
+  "host_os_trust_store_modified": false,
+  "thumbprint_sha1": "6C13F2627F682DB2462A316510A27B56325C1FA9",
+  "sha256_fingerprint": "7c:3d:ce:fe:50:39:4f:3b:18:28:a1:5d:70:b9:81:41:4e:64:fa:6d:a7:99:42:ee:83:13:54:8a:62:54:47:39",
+  "install_started": "2026-08-06T15:42:09-05:00",
+  "install_exit_code": 0,
+  "post_install_query_status": "present",
+  "verified_exact_thumbprint_present": true,
+  "remove_started": "2026-08-06T16:05:33-05:00",
+  "delete_exit_code": 0,
+  "post_delete_query_exit_code": 1,
+  "post_delete_query_status": "absent",
+  "verified_absent": true,
+  "independent_read_only_system_reg_status": "absent"
+}

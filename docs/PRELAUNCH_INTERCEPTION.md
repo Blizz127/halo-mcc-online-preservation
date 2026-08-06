@@ -2,9 +2,10 @@
 
 Status: **P0-C2D0-R2 corrected the live-contract gaps, and the separately authorized P0-C2D live
 single-host blind-relay rung completed as `A. BLIND RELAY PASS`. The follow-on P0-C2D1 TLS/SNI/ALPN
-observation rung halted at its starting gate before any live action; P0-C2D1-R0 corrects the
-observer bounds that caused the halt. A separate Meta Muse Spark 1.2 read-only audit of P0-C2D0
-remains pending.**
+observation first halted before live action; P0-C2D1-R0 corrected its bounds. A later live attempt
+ended `E. SNI / OBSERVER CONTRACT FAILURE` because setup consumed the observer window and launch
+was issued after expiry. No MCC TLS verdict exists. A separate Meta Muse Spark 1.2 read-only audit
+of P0-C2D0 remains pending.**
 
 R1 corrected every blocker from the Codex Sol adversarial audit (`C. REJECT — RELAY SAFETY FAILURE`
 on the first local candidate). R2 corrects a different class of problem: the tooling obeyed its
@@ -166,6 +167,33 @@ running the preflight — that writes only mode-`0600` material and changes no s
 supply all five arguments. This is a runbook ordering requirement, not a tool defect
 (`E-P0C2D1R0-003`).
 
+## Live attempt result — P0-C2D1
+
+The later authorized live attempt is recorded in `evidence/p0c2d1_tls_observation/`
+(`E-P0C2D1-001` through `E-P0C2D1-006`). Exact certificate constraints, prefix-only trust, observer
+readiness, and one-host redirect scope passed. The observer started at `15:58:38-05:00` with the
+recommended 240-second/eight-connection bounds, but the redirect was not confirmed installed until
+`16:02:24` and scope verification began at `16:02:36`, seconds before the `16:02:38` deadline.
+Steam launch was then issued at `16:02:43`, after the listener had closed.
+
+The observer's fixed-schema result was `exit_reason: total_deadline`, `elapsed_seconds: 240.103`, and
+`observation_count: 0`. This is **`E. SNI / OBSERVER CONTRACT FAILURE`**, specifically a failed
+lifecycle/runbook window. It is not `D. OBSERVER NOT CONTACTED`: MCC never received a valid bounded
+window in which to contact the observer. No SNI, TLS version, cipher, ALPN, application data,
+certificate verdict, protocol result, or pinning verdict was observed.
+
+The exact hash- and inode-guarded hosts rollback restored the original bytes, SHA-256, size, mode,
+and inode. Resolver state and all protected-host resolutions returned to normal. The exact CA
+thumbprint was removed from the MCC Proton-Wine Root store and independently verified absent; all
+temporary certificate and key files were deleted. A separate normal post-rollback launch completed
+identity and reached the main menu without a certificate/service error, followed by verified process
+shutdown.
+
+The failed sequence adds a stricter operational gate for any separately authorized retry: prepare
+and validate every non-observer prerequisite and the exact install/rollback commands before starting
+the observer, and refuse redirect or launch unless the remaining bounded runtime still covers the
+measured live interval. The current result does not justify application-layer passthrough work.
+
 ## Phase boundary
 
 P0-C2D0-R2 establishes only that the preflight, probe, and relay bounds now match the live rung's
@@ -173,9 +201,8 @@ authorized state and scope, under synthetic validation. It establishes no MCC re
 TLS acceptance or pinning verdict, settings manifest, endpoint authority, or production forwarding
 behaviour, and it changes no architecture hypothesis.
 
-**P0-C2D is complete. P0-C2D1 was authorized, halted at its starting gate before any live action,
-and is not completed. P0-C2E is not started.** The P0-C2D live result supports re-running the
-exact-host TLS/SNI/ALPN observation rung now that the observer's bounds cover the measured timeline,
-but neither that result nor P0-C2D1-R0 authorizes the run, any CA generation, any Wine trust
-installation, or any redirect. The corrected tooling still awaits the separate Meta Muse Spark 1.2
-read-only audit noted above.
+**P0-C2D is complete. P0-C2D1 remains incomplete after an E-class lifecycle failure. P0-C2E is not
+started.** P0-C2D's opaque-transport result still supports a separately authorized retry, but the
+P0-C2D1 attempt observed no MCC TLS behavior and authorizes neither another run nor application-layer
+passthrough. Certificate acceptance and pinning remain unresolved. The corrected tooling still
+awaits the separate Meta Muse Spark 1.2 read-only audit noted above.

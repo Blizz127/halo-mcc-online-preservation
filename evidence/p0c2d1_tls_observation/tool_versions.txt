@@ -1,0 +1,25 @@
+P0-C2D1 TLS-observation tool and host versions
+===============================================
+
+Environment
+-----------
+  os             Bazzite 44
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+  python3        Python 3.14.6
+  pytest         pytest 9.1.1
+  cryptography   49.0.0
+  git            git version 2.55.0
+  openssl        OpenSSL 3.5.7 9 Jun 2026
+
+Project tool SHA-256
+--------------------
+  p0c2d_preflight.py  f152c84790c2be7fb86f514aa5a60307c53e6a65d80ffafcdc5c0b5a251c3960
+  local_ca.py         a1835ceeca97a4a66301f8550300596bb019703e7014bc3bafc5cdcc75d3d6b5
+  wine_trust.py       1d7d1b112bf1c72a27b47a8aafbb4da3fb756170df178392e6d06d57ff5aef14
+  tls_observer.py     38e83377045a21b7aae1d843fbfb747f018c09bca02e043c0127dcce68c41da3
+  host_redirect.py    7ccf6d21941642e952679d44ab341334787557b1359c1db8357d829bd72fbeb0
+
+Privilege boundary
+------------------
+  Observer start and exact /etc/hosts install/rollback commands were run manually by the operator.
+  No sudo password was requested, received, echoed, stored, or passed by project tooling.

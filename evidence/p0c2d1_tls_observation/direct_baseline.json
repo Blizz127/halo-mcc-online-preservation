@@ -1,0 +1,16 @@
+{
+  "format": "p0c2d1-direct-baseline-v1",
+  "evidence_id": "E-P0C2D1-001",
+  "launch_started": "2026-08-06T15:38:28-05:00",
+  "operator_confirmation": "2026-08-06T15:40:13-05:00",
+  "launch_path": "normal Steam launch; Launch Options unchanged and proxy-free",
+  "steam_launched_mcc": true,
+  "certificate_or_service_error": false,
+  "identity_success": null,
+  "main_menu_success": null,
+  "sign_in_mode": "unknown",
+  "confirmation_limit": "operator confirmed launch and no errors, but did not explicitly confirm identity or main-menu success",
+  "baseline_gate_complete": false,
+  "clean_shutdown_verified_before_certificate_generation": true,
+  "account_identifiers_recorded": false
+}

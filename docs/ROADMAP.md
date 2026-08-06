@@ -58,12 +58,15 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   separate normal launch succeeded (`E-P0C2D-001` through `E-P0C2D-005`,
   `evidence/p0c2d_live_blind_relay/`). This proves transport and pre-launch reachability only; it
   does not establish plaintext, schema, settings authority, CA acceptance, or pinning.
-- **P0-C2D1 — Exact-host TLS/SNI/ALPN observation live experiment.** *Authorized, halted at its
-  starting gate, not completed.* The repository gate passed and read-only host inspection found the
-  expected pre-rung state, but the rung stopped before the direct baseline and before any live
-  action on an operator decision, after two structural gaps were found by reading the tooling.
-  No certificate was generated, no observer was started, no redirect was installed, and no MCC
-  behaviour, TLS verdict, or pinning verdict was observed. No A–F classification is possible.
+- **P0-C2D1 — Exact-host TLS/SNI/ALPN observation live experiment.** *Incomplete; latest live
+  attempt classified `E. SNI / OBSERVER CONTRACT FAILURE`.* The earlier attempt halted before live
+  action and led to R0. In the later authorized attempt, the exact-host certificate, prefix-only
+  trust, observer readiness, and one-host redirect scope all passed their gates, but coordination
+  latency consumed the 240-second observer window. The observer recorded `total_deadline`, 240.103 s,
+  and zero observations; Steam launch was issued after expiry, so this is not `D. OBSERVER NOT
+  CONTACTED` and proves nothing about MCC certificate acceptance, SNI, ALPN, or pinning. Exact hosts
+  rollback, trust removal, certificate deletion, and normal post-rollback operation all succeeded.
+  `E-P0C2D1-001` through `E-P0C2D1-006`, `evidence/p0c2d1_tls_observation/`.
 - **P0-C2D1-R0 — TLS observer live-bounds correction.** *Complete; synthetic validation only.* The
   observer's `MAX_SECONDS` was 120 s, a synthetic-era value never reconciled with live launch
   behaviour, while the measured redirect-verify-to-connect interval alone is 75 s (`E-P0C2D-004`)
