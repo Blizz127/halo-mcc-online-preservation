@@ -1,4 +1,10 @@
-"""Bounded TLS/ALPN observer that never forwards traffic or persists values/bodies."""
+"""Bounded TLS/ALPN observer that never forwards traffic or persists values/bodies.
+
+Runtime bounds are derived from measured live launch behaviour, not from the
+synthetic defaults this tool started with. Every run records why it ended, so a
+run that expired before the client arrived can never be mistaken for a run that
+proved the client never came.
+"""
 
 from __future__ import annotations
 
@@ -25,8 +31,37 @@ import schema_extract  # noqa: E402
 
 ALPN_PROTOCOLS = ["h2", "http/1.1"]
 MAX_CONNECTIONS = 8
-MAX_SECONDS = 120.0
+# One hard runtime bound across the live interception tools. This was 120s, a
+# synthetic-era value that was never reconciled with the live launch timeline,
+# and it is raised to the relay's already-accepted maximum rather than to a new
+# number invented here. A longer experiment still needs a new rung.
+MAX_SECONDS = prelaunch_relay.MAX_SECONDS
 TLS_TOOL = "tls-observer"
+LOG_FORMAT = "p0c2d1r0-tls-observer-v2"
+
+# Live bounds, derived from measured launch behaviour rather than guessed.
+#
+# The observer must already be listening before the redirect is installed, so
+# its runtime has to cover the redirect install and scope verification *and*
+# everything the relay's window had to cover:
+#
+#     redirect install + scope verify + Steam start + Play to title services
+#
+# Two measurements bound that. P0-C1 (`E-P0C1-003`) recorded title-service
+# resolution at +72s after MCC launch. P0-C2D (`E-P0C2D-004`) recorded 75s from
+# redirect scope verification to the settings connection arriving at the local
+# listener -- and the observer's clock starts before that verification, not
+# after it.
+OBSERVED_LAUNCH_TO_TITLE_SERVICE_SECONDS = 72.0
+OBSERVED_REDIRECT_VERIFY_TO_CONNECT_SECONDS = 75.0
+RECOMMENDED_LIVE_SECONDS = 240.0
+# Reconnect headroom. Unlike the relay, the observer has no lingering mode: it
+# stops accepting once the cap is reached. A cap of 1 would therefore leave an
+# installed redirect pointing at an exited listener after the first connection,
+# and MCC's retry -- the very behaviour that distinguishes a rejected
+# certificate from an accepted one -- would meet a refused connection instead
+# of the observer.
+RECOMMENDED_LIVE_MAX_CONNECTIONS = 8
 
 
 def _now() -> str:
@@ -85,6 +120,20 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
     prelaunch_relay.prepare_control_path(ready_file, TLS_TOOL, "ready")
 
     observations: list[dict] = []
+    exit_reason = "total_deadline"
+    started_monotonic = time.monotonic()
+
+    def _document() -> dict:
+        """Metadata-only run summary. No payload, peer address, or value appears here."""
+        return {
+            "format": LOG_FORMAT,
+            "observation_count": len(observations),
+            "exit_reason": exit_reason,
+            "total_timeout_seconds": total_timeout,
+            "elapsed_seconds": round(time.monotonic() - started_monotonic, 3),
+            "observations": observations,
+        }
+
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(certfile=str(certfile), keyfile=str(keyfile))
     context.set_alpn_protocols(ALPN_PROTOCOLS)
@@ -110,7 +159,7 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
     safe_log = None
     try:
         safe_log = prelaunch_relay.SafeJsonLog(log_path)
-        safe_log.write({"format": "p0c2d0-tls-observer-v1", "observations": []})
+        safe_log.write(_document())
     except BaseException:
         if safe_log is not None:
             safe_log.close()
@@ -226,13 +275,20 @@ def run_observer(certfile: Path, keyfile: Path, port: int = 8443, bind: str = "1
                 observations.append(record)
                 try:
                     if log_path:
-                        safe_log.write({
-                            "format": "p0c2d0-tls-observer-v1",
-                            "observations": observations,
-                        })
+                        safe_log.write(_document())
                 finally:
                     raw.close()
+        # Recorded so a cap-bounded run is never read as a complete one: the
+        # observer stops accepting at the cap, and a `D. OBSERVER NOT CONTACTED`
+        # reading is only sound when the run actually reached its deadline.
+        if len(observations) >= max_connections:
+            exit_reason = "connection_cap_reached"
     finally:
+        if log_path:
+            try:
+                safe_log.write(_document())
+            except OSError:
+                pass
         listener.close()
         prelaunch_relay.remove_owned_control(ready_identity)
         prelaunch_relay.remove_owned_control(pid_identity)
@@ -246,8 +302,11 @@ def main() -> int:
     parser.add_argument("--key", type=Path, required=True)
     parser.add_argument("--port", type=int, default=443)
     parser.add_argument("--bind", default=prelaunch_relay.AUTHORIZED_BIND)
-    parser.add_argument("--max-connections", type=int, default=1)
-    parser.add_argument("--seconds", type=float, default=30.0)
+    parser.add_argument("--max-connections", type=int,
+                        default=RECOMMENDED_LIVE_MAX_CONNECTIONS,
+                        help="reconnect headroom; the observer stops accepting at the cap")
+    parser.add_argument("--seconds", type=float, default=RECOMMENDED_LIVE_SECONDS,
+                        help=f"total runtime; hard maximum is {MAX_SECONDS:g}s")
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("--pid-file", type=Path, required=True)
     parser.add_argument("--ready-file", type=Path, required=True)

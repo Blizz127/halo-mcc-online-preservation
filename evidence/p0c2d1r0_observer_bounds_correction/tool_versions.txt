@@ -1,0 +1,32 @@
+P0-C2D1-R0 tool and host versions
+=================================
+
+Environment
+-----------
+  os             Bazzite
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+  python3        Python 3.14.6
+  pytest         pytest 9.1.1
+  cryptography   49.0.0
+  git            git version 2.55.0
+  openssl        OpenSSL 3.5.7 9 Jun 2026
+
+Project tool SHA-256 (after correction)
+---------------------------------------
+  tls_observer.py     38e83377045a21b7aae1d843fbfb747f018c09bca02e043c0127dcce68c41da3  CHANGED
+  prelaunch_relay.py  af187b21c80e64c24c9e5a20f414d5cebd375d99923185cce01e92b6a0f82036  unchanged
+  p0c2d_preflight.py  f152c84790c2be7fb86f514aa5a60307c53e6a65d80ffafcdc5c0b5a251c3960  unchanged
+  local_ca.py         a1835ceeca97a4a66301f8550300596bb019703e7014bc3bafc5cdcc75d3d6b5  unchanged
+  wine_trust.py       1d7d1b112bf1c72a27b47a8aafbb4da3fb756170df178392e6d06d57ff5aef14  unchanged
+  host_redirect.py    7ccf6d21941642e952679d44ab341334787557b1359c1db8357d829bd72fbeb0  unchanged
+
+tls_observer.py is the only tool changed by this rung. The correction is confined to
+runtime bounds, CLI defaults, and run-summary exit accounting; no TLS, SNI, ALPN,
+certificate-verdict, protocol-classification, redaction, or control-file behaviour was
+altered, and every pre-existing observer test still passes unmodified.
+
+Privilege boundary
+------------------
+  No privileged command was generated or executed by this rung. No sudo password was
+  requested, received, echoed, stored, or passed by project tooling. No observer was
+  started, no redirect was installed, and no certificate or key was generated.

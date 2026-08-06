@@ -1,8 +1,10 @@
 # P0-C2D pre-launch interception tooling
 
 Status: **P0-C2D0-R2 corrected the live-contract gaps, and the separately authorized P0-C2D live
-single-host blind-relay rung completed as `A. BLIND RELAY PASS`. A separate Meta Muse Spark 1.2
-read-only audit of P0-C2D0 remains pending.**
+single-host blind-relay rung completed as `A. BLIND RELAY PASS`. The follow-on P0-C2D1 TLS/SNI/ALPN
+observation rung halted at its starting gate before any live action; P0-C2D1-R0 corrects the
+observer bounds that caused the halt. A separate Meta Muse Spark 1.2 read-only audit of P0-C2D0
+remains pending.**
 
 R1 corrected every blocker from the Codex Sol adversarial audit (`C. REJECT — RELAY SAFETY FAILURE`
 on the first local candidate). R2 corrects a different class of problem: the tooling obeyed its
@@ -62,6 +64,8 @@ expectations the code held. A suite that encodes an assumption cannot detect it.
   bodies. Production SNI must match the selected hostname; missing/mismatched SNI is closed before
   application parsing. `h2` is explicitly `unsupported_protocol` and is never parsed. Certificate
   acceptance requires post-handshake application data. It shares the relay's owned-control lifecycle.
+  Its runtime bounds were reconciled with measured live behaviour in **P0-C2D1-R0**, and every run
+  now records why it ended.
 - `reverse_proxy.py` is explicitly **NOT READY**. Its inherited runnable forwarder was removed because
   safe streaming HTTP/1.1 framing, persistent exchanges, upgrades/trailers/informational responses,
   and TLS half-close/deadline behavior are not proven.
@@ -122,6 +126,46 @@ breaking the observed cached-identity/main-menu path. TLS was not terminated; no
 response, certificate body, or account identifier was inspected or persisted. CA acceptance,
 pinning, plaintext schema, and settings authority remain unresolved.
 
+## Live observer bounds — P0-C2D1-R0
+
+The relay's bounds were reconciled with measured launch behaviour in R2. The observer's were not,
+and the authorized P0-C2D1 live rung halted at its starting gate because of it. Full detail in
+`evidence/p0c2d1r0_observer_bounds_correction/REPORT.md` (`E-P0C2D1R0-002`, `E-P0C2D1R0-004`).
+
+The observer must be listening **before** the redirect is installed, so its runtime has to cover the
+`/etc/hosts` install, the whole scope verification, and then the measured 75 s from scope
+verification to the settings connection arriving at the listener (`E-P0C2D-004`) — on top of the
+72 s launch-to-title-service delay that interval already contains (`E-P0C1-003`). The old
+`MAX_SECONDS = 120.0` left roughly 20–35 s of margin, which any Steam cold start consumes.
+
+| Setting | Recommended live value | Reason |
+|---|---|---|
+| `--seconds` | 240 | Redirect install + scope verify + Steam start + launch-to-title-service, with margin, inside the hard maximum |
+| `--max-connections` | 8 | Reconnect headroom — and MCC's retry after a handshake is part of how a rejected certificate is told apart from an accepted one |
+
+The hard maximum is now `prelaunch_relay.MAX_SECONDS` (**300 s**) rather than a second, separate
+number: one bound across both live interception tools. It was raised to an already-accepted value,
+not to a new one. A longer experiment still needs a new rung.
+
+**Dead-observer hazard.** The observer has no lingering mode — it stops accepting at its connection
+cap — so with the old default cap of 1 it exited after the first connection while the redirect was
+still installed, and MCC's retry would have met a refused connection. Two controls bound this, and
+they are complementary:
+
+1. *Code.* The cap defaults to 8, and every run records `exit_reason` (`total_deadline` or
+   `connection_cap_reached`) alongside `observation_count`, `total_timeout_seconds`, and
+   `elapsed_seconds`, in log format `p0c2d1r0-tls-observer-v2`. Without that, an observer that
+   expired before MCC arrived is indistinguishable from one that stayed up and proved MCC never
+   came — the first is a tooling failure, the second is a claim about MCC.
+2. *Runbook.* Roll the redirect back **before** observer expiry, exactly as for the relay.
+
+**Preflight step ordering.** `--stage tls-observer` requires `--cert` and `--key`, and its Wine
+CA-absence check is all-or-none on `--prefix`, `--proton-wine`, and `--ca-thumbprint`. A live rung
+must therefore generate the exact-host certificate into repository-external scratch **before**
+running the preflight — that writes only mode-`0600` material and changes no system state — and then
+supply all five arguments. This is a runbook ordering requirement, not a tool defect
+(`E-P0C2D1R0-003`).
+
 ## Phase boundary
 
 P0-C2D0-R2 establishes only that the preflight, probe, and relay bounds now match the live rung's
@@ -129,6 +173,9 @@ authorized state and scope, under synthetic validation. It establishes no MCC re
 TLS acceptance or pinning verdict, settings manifest, endpoint authority, or production forwarding
 behaviour, and it changes no architecture hypothesis.
 
-**P0-C2D is complete. P0-C2E is not started.** The live result supports considering a separately
-authorized exact-host TLS/SNI/ALPN observation rung, but does not authorize it or any CA use. The
-corrected tooling still awaits the separate Meta Muse Spark 1.2 read-only audit noted above.
+**P0-C2D is complete. P0-C2D1 was authorized, halted at its starting gate before any live action,
+and is not completed. P0-C2E is not started.** The P0-C2D live result supports re-running the
+exact-host TLS/SNI/ALPN observation rung now that the observer's bounds cover the measured timeline,
+but neither that result nor P0-C2D1-R0 authorizes the run, any CA generation, any Wine trust
+installation, or any redirect. The corrected tooling still awaits the separate Meta Muse Spark 1.2
+read-only audit noted above.

@@ -58,6 +58,23 @@ Run Wireshark as ground truth. Test Fiddler/mitmproxy with WinHTTP proxy configu
   separate normal launch succeeded (`E-P0C2D-001` through `E-P0C2D-005`,
   `evidence/p0c2d_live_blind_relay/`). This proves transport and pre-launch reachability only; it
   does not establish plaintext, schema, settings authority, CA acceptance, or pinning.
+- **P0-C2D1 — Exact-host TLS/SNI/ALPN observation live experiment.** *Authorized, halted at its
+  starting gate, not completed.* The repository gate passed and read-only host inspection found the
+  expected pre-rung state, but the rung stopped before the direct baseline and before any live
+  action on an operator decision, after two structural gaps were found by reading the tooling.
+  No certificate was generated, no observer was started, no redirect was installed, and no MCC
+  behaviour, TLS verdict, or pinning verdict was observed. No A–F classification is possible.
+- **P0-C2D1-R0 — TLS observer live-bounds correction.** *Complete; synthetic validation only.* The
+  observer's `MAX_SECONDS` was 120 s, a synthetic-era value never reconciled with live launch
+  behaviour, while the measured redirect-verify-to-connect interval alone is 75 s (`E-P0C2D-004`)
+  and the observer's clock starts before that interval. An expired observer would have produced a
+  result reading as `D. OBSERVER NOT CONTACTED` — a claim about MCC — and left the redirect pointing
+  at a dead listener. The hard maximum now equals the relay's already-accepted 300 s, the
+  recommended live runtime is 240 s with a connection cap of 8, and every run records `exit_reason`
+  so a cap-bounded or expired run can never read as a complete one. A second finding is recorded as
+  a runbook ordering requirement rather than a tool defect: the `tls-observer` preflight stage
+  requires certificate material, so the exact-host certificate must be generated into scratch before
+  the preflight runs. `evidence/p0c2d1r0_observer_bounds_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`.
 - **P0-C2E — MCC endpoint manifest and configuration-surface discovery.** *Not started.* Depends on
   evidence from an authorized P0-C2D live experiment; must not assume a redirect intercepts a reused
   connection or that the settings service is a manifest authority.

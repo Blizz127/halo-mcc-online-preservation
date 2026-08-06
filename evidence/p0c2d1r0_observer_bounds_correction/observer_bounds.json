@@ -1,0 +1,53 @@
+{
+  "format": "p0c2d1r0-observer-bounds-v1",
+  "evidence_id": "E-P0C2D1R0-004",
+  "tool": "tools/interception/linux/tls_observer.py",
+  "superseded": {
+    "max_seconds": 120.0,
+    "cli_default_seconds": 30.0,
+    "cli_default_max_connections": 1,
+    "log_format": "p0c2d0-tls-observer-v1",
+    "exit_reason_recorded": false,
+    "origin": "synthetic-era defaults; never reconciled with live launch behaviour"
+  },
+  "corrected": {
+    "max_seconds": 300.0,
+    "max_seconds_source": "prelaunch_relay.MAX_SECONDS (already accepted in P0-C2D0-R2)",
+    "recommended_live_seconds": 240.0,
+    "recommended_live_max_connections": 8,
+    "max_connections": 8,
+    "cli_default_seconds": 240.0,
+    "cli_default_max_connections": 8,
+    "log_format": "p0c2d1r0-tls-observer-v2",
+    "exit_reason_recorded": true,
+    "exit_reasons": [
+      "total_deadline",
+      "connection_cap_reached"
+    ],
+    "run_summary_fields_added": [
+      "observation_count",
+      "exit_reason",
+      "total_timeout_seconds",
+      "elapsed_seconds"
+    ],
+    "lingering_added": false,
+    "lingering_rationale": "the observer's purpose completes at its cap; a bounded cap plus a recorded exit reason covers the dead-listener hazard without adding an untested code path. Rollback before observer expiry remains the complementary runbook control."
+  },
+  "measurements_the_correction_is_derived_from": [
+    {
+      "name": "launch_to_title_service_seconds",
+      "value": 72.0,
+      "evidence_id": "E-P0C1-003"
+    },
+    {
+      "name": "redirect_verify_to_connect_seconds",
+      "value": 75.0,
+      "evidence_id": "E-P0C2D-004",
+      "note": "14:28:12 scope verification to 14:29:27 connection at the local listener; the observer's clock starts before this interval, not after it"
+    }
+  ],
+  "why_120s_was_insufficient": "the observer must be listening before the redirect is installed, so 120s had to absorb the /etc/hosts install, the full scope verification, and the measured 75s redirect-verify-to-connect interval, leaving roughly 20-35s of margin",
+  "failure_mode_prevented": "an expired observer yields a result that reads as 'D. OBSERVER NOT CONTACTED' - a claim about MCC - when the true cause is the observer having exited first, and leaves an installed redirect pointing at a dead listener",
+  "payload_fields_added": "none",
+  "peer_address_fields_added": "none"
+}

@@ -1,0 +1,98 @@
+P0-C2D1-R0 synthetic validation
+
+Trigger:
+  authorized P0-C2D1 live rung halted at its starting gate
+  starting commit: bc0c25a202c25ff203a32b9d3aa17d117baf0a3a
+  live stage entered: none
+  live classification: none possible; observer never started, direct baseline never attempted
+  system/client state changed: none
+
+Findings that caused the halt:
+  E-P0C2D1R0-002  observer MAX_SECONDS 120.0 cannot cover the measured live timeline
+                  (structural tooling gap)
+  E-P0C2D1R0-003  rung step order runs the tls-observer preflight before the certificate
+                  it requires exists (step-ordering defect in the instruction, not the tool)
+
+Audit history:
+  Codex Sol (P0-C2D0 first candidate): C. REJECT - RELAY SAFETY FAILURE, corrected in R1
+  Codex Sol coverage gap: synthetic contract only; live-rung state and scope untested
+  P0-C2D0-R2 coverage gap, newly recorded here: the relay received a live-bounds
+    reconciliation and a live-bounds consistency test; the observer received neither
+  Meta Muse Spark 1.2 read-only audit: still pending, not claimed as passed
+
+Environment:
+  os             Bazzite
+  kernel         7.1.5-ogc5.1.fc44.x86_64
+  Python 3.14.6
+  pytest 9.1.1
+  cryptography 49.0.0
+
+Targeted safety suite:
+  python3 -m pytest -q tests/test_p0c2d0_prelaunch.py
+  132 passed in 9.70s   (124 passed at R2)
+
+Full repository suite:
+  python3 -m pytest -q
+  251 passed in 9.98s   (243 passed at R2)
+
+Static/status checks:
+  python3 -m compileall -q tools tests   passed
+  git diff --check                        passed
+
+  python3 -m ruff check tools/interception/linux tests
+  not run: ruff is not installed in the validation environment
+
+Coverage added for the observer bounds correction:
+  PASS observer hard maximum equals the relay hard maximum, so the two live
+       interception tools cannot silently diverge again
+  PASS recommended live runtime lies inside the hard maximum
+  PASS recommended live connection cap is greater than 1 and within MAX_CONNECTIONS
+  PASS recommended runtime covers the measured redirect-verify-to-connect interval
+       with margin, and the superseded 120s cap could not express that bound
+  PASS run_observer accepts the recommended 240s runtime (previously raised)
+  PASS run_observer still rejects a runtime above the hard maximum
+  PASS a run that reaches its deadline records exit_reason total_deadline,
+       observation_count 0, its configured timeout, and elapsed time
+  PASS a cap-bounded run records exit_reason connection_cap_reached distinctly,
+       and is not inferable from elapsed time
+  PASS production CLI defaults are the live recommendations; no superseded
+       synthetic default survives on that path
+  PASS the run summary carries no payload, header value, query value, or peer
+       address
+
+Pre-existing observer coverage still passing:
+  PASS ALPN, exact SNI, normalized path, header names only, no values persisted
+  PASS production observer rejects a synthetic certificate before binding
+  PASS stalled handshake bounded by the total deadline
+  PASS exact, mismatched, and missing SNI each classified; mismatched and missing
+       closed before application parsing
+  PASS h2 classified unsupported_protocol and never parsed
+  PASS certificate acceptance requires post-handshake application data
+  PASS stale control removal and bind-failure lifecycle leave no artifact
+
+Network and mutation boundary:
+  synthetic loopback listeners only, high unprivileged ports
+  no production service contacted
+  no sudo command executed
+  no Steam, MCC, Wine, relay, observer, proxy, or capture process started or stopped
+  no /etc/hosts, DNS, routing, firewall, proxy, Wine, or certificate-store change
+  no certificate or private key generated for the halted live rung
+  no packet capture run
+  no listener or test process remained after validation
+  no temporary synthetic artifact remained
+
+Host inspection during the halted attempt:
+  read-only throughout: file reads, /proc and socket-table inspection, and a
+  system.reg text parse that does not start Wine
+
+Sensitive-material scan:
+  no key, certificate, PEM, DER, PCAP, HAR, SAZ, token, cookie, authorization
+  value, account identifier, gamertag, XUID, or private path in tracked files
+  no scratch or temporary control file staged
+
+Phase boundary:
+  P0-C2D remains complete
+  P0-C2D1 halted before its baseline; not completed
+  P0-C2E manifest discovery not started
+  reverse proxy remains NOT READY and safely disabled
+  no architecture hypothesis promoted, narrowed, or changed

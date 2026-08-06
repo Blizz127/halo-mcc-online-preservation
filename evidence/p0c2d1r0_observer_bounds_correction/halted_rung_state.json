@@ -1,0 +1,57 @@
+{
+  "format": "p0c2d1r0-halted-rung-state-v1",
+  "evidence_id": "E-P0C2D1R0-001",
+  "rung": "P0-C2D1 exact-host TLS/SNI/ALPN observation",
+  "starting_commit": "bc0c25a202c25ff203a32b9d3aa17d117baf0a3a",
+  "repository_gate": {
+    "branch": "main",
+    "head_equals_origin_main": true,
+    "ahead": 0,
+    "behind": 0,
+    "tracked_tree_clean": true,
+    "nonignored_untracked_files": 0,
+    "git_diff_check": "clean"
+  },
+  "halt_point": "before the direct baseline and before any live action",
+  "halt_cause": "operator decision after two structural tooling gaps were identified by reading the tools' source",
+  "live_stage_entered": "none",
+  "live_classification": "none possible; the observer was never started and the direct baseline was never attempted",
+  "read_only_host_state_at_halt": {
+    "proxy_environment_variables": "none set",
+    "hosts_project_sentinel_present": false,
+    "hosts_manual_selected_host_entry": false,
+    "hosts_inode": 4621125,
+    "hosts_size_bytes": 604,
+    "hosts_mode": "0644",
+    "listener_on_127_0_0_77_443": false,
+    "steam_running": false,
+    "mcc_running": false,
+    "project_interception_or_capture_process_running": false,
+    "mcc_proton_prefix_root_store_entries": 156,
+    "prior_project_ca_thumbprint_checked": "64548D5A11AB5B9DECE2CB5D4215AA577F6FC104",
+    "prior_project_ca_status": "absent",
+    "prefix_inspection_method": "read-only system.reg text parse; Wine was not started"
+  },
+  "state_changed": {
+    "etc_hosts": false,
+    "dns_routing_firewall_proxy": false,
+    "wine_prefix_or_certificate_store": false,
+    "steam_launch_options": false,
+    "certificate_or_key_generated": false,
+    "observer_or_relay_or_proxy_started": false,
+    "packet_capture_run": false,
+    "sudo_command_executed": false,
+    "production_service_contacted": false
+  },
+  "not_established": [
+    "any MCC behaviour",
+    "TLS handshake, SNI value, ALPN result",
+    "certificate acceptance or rejection verdict",
+    "certificate pinning verdict",
+    "Microsoft/Xbox sign-in result",
+    "main-menu result",
+    "request shape or response schema",
+    "settings-service authority",
+    "endpoint manifest"
+  ]
+}

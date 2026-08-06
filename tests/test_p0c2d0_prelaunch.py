@@ -1635,3 +1635,157 @@ def test_relay_production_contract_rejects_non_unicast_upstreams(rejected: str) 
         prelaunch_relay.validate_production_contract(
             prelaunch_relay.AUTHORIZED_BIND, prelaunch_relay.AUTHORIZED_HOST, rejected, 443
         )
+
+
+# --------------------------------------------------------------------------
+# P0-C2D1-R0: TLS observer live-bounds correction
+# --------------------------------------------------------------------------
+
+
+def test_observer_live_bounds_are_internally_consistent() -> None:
+    total = tls_observer.RECOMMENDED_LIVE_SECONDS
+    # One hard runtime bound across the live interception tools, so the observer
+    # cannot silently diverge from the relay again.
+    assert tls_observer.MAX_SECONDS == prelaunch_relay.MAX_SECONDS
+    assert total <= tls_observer.MAX_SECONDS
+    assert 1 < tls_observer.RECOMMENDED_LIVE_MAX_CONNECTIONS <= tls_observer.MAX_CONNECTIONS
+
+
+def test_observer_runtime_covers_the_measured_live_timeline() -> None:
+    """The regression that would have caught the superseded 120s cap.
+
+    The observer starts before the redirect is installed, so its runtime has to
+    cover the whole measured redirect-verify-to-connect interval with margin for
+    the install and scope verification that precede it.
+    """
+    total = tls_observer.RECOMMENDED_LIVE_SECONDS
+    measured = tls_observer.OBSERVED_REDIRECT_VERIFY_TO_CONNECT_SECONDS
+    assert measured >= tls_observer.OBSERVED_LAUNCH_TO_TITLE_SERVICE_SECONDS
+    assert total >= measured * 2
+    # The superseded cap could not express this bound at all.
+    assert measured * 2 > 120.0
+
+
+def test_observer_accepts_the_recommended_live_runtime(tmp_path: Path) -> None:
+    """Previously this raised: 240s exceeded the superseded 120s maximum."""
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(cert_dir, hostname="p0c2a.test", days=1)
+    port, ready = _free_port(), threading.Event()
+    result: dict = {}
+
+    def server() -> None:
+        result["records"] = tls_observer.run_observer(
+            cert_dir / "server.crt", cert_dir / "server.key", port, "127.0.0.1",
+            max_connections=1, total_timeout=tls_observer.RECOMMENDED_LIVE_SECONDS,
+            ready_event=ready, required_sni="p0c2a.test",
+        )
+
+    thread = threading.Thread(target=server)
+    thread.start()
+    # Reaching ready proves the 240s bound was accepted and the listener bound.
+    assert ready.wait(5)
+    # One connection then retires the run at its cap, so the test does not wait
+    # out the full recommended runtime or leave a listener behind.
+    context = ssl.create_default_context(cafile=str(cert_dir / "ca.crt"))
+    with socket.create_connection(("127.0.0.1", port), timeout=2) as raw:
+        with context.wrap_socket(raw, server_hostname="p0c2a.test") as client:
+            client.sendall(b"GET /safe HTTP/1.1\r\nHost: p0c2a.test\r\n\r\n")
+    thread.join(10)
+    assert not thread.is_alive()
+    assert result["records"][0]["sni_result"] == "exact"
+
+
+def test_observer_rejects_runtime_above_the_hard_maximum(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(cert_dir, hostname="localhost", days=1)
+    with pytest.raises(ValueError, match="total_timeout"):
+        tls_observer.run_observer(
+            cert_dir / "server.crt", cert_dir / "server.key", _free_port(), "127.0.0.1",
+            total_timeout=tls_observer.MAX_SECONDS + 1,
+        )
+
+
+def test_observer_records_a_deadline_exit_with_no_observation(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(cert_dir, hostname="localhost", days=1)
+    log = tmp_path / "deadline.json"
+    records = tls_observer.run_observer(
+        cert_dir / "server.crt", cert_dir / "server.key", _free_port(), "127.0.0.1",
+        max_connections=1, total_timeout=0.4, log_path=log,
+    )
+    assert records == []
+    persisted = json.loads(log.read_text(encoding="utf-8"))
+    assert persisted["format"] == tls_observer.LOG_FORMAT
+    assert persisted["exit_reason"] == "total_deadline"
+    assert persisted["observation_count"] == 0
+    assert persisted["total_timeout_seconds"] == 0.4
+    assert persisted["elapsed_seconds"] >= 0.4
+
+
+def test_observer_records_a_cap_exit_distinctly(tmp_path: Path) -> None:
+    """A cap-bounded run must never read as a run that reached its deadline."""
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(cert_dir, hostname="p0c2a.test", days=1)
+    port, ready = _free_port(), threading.Event()
+    log = tmp_path / "cap.json"
+
+    def server() -> None:
+        tls_observer.run_observer(
+            cert_dir / "server.crt", cert_dir / "server.key", port, "127.0.0.1",
+            max_connections=1, total_timeout=10, ready_event=ready, log_path=log,
+            required_sni="p0c2a.test",
+        )
+
+    thread = threading.Thread(target=server)
+    thread.start()
+    assert ready.wait(2)
+    context = ssl.create_default_context(cafile=str(cert_dir / "ca.crt"))
+    with socket.create_connection(("127.0.0.1", port), timeout=2) as raw:
+        with context.wrap_socket(raw, server_hostname="p0c2a.test") as client:
+            client.sendall(b"GET /safe HTTP/1.1\r\nHost: p0c2a.test\r\n\r\n")
+    thread.join(5)
+    assert not thread.is_alive()
+    persisted = json.loads(log.read_text(encoding="utf-8"))
+    assert persisted["exit_reason"] == "connection_cap_reached"
+    assert persisted["observation_count"] == 1
+    # The run ended well before its deadline, which is exactly why the reason
+    # has to be recorded rather than inferred from elapsed time.
+    assert persisted["elapsed_seconds"] < 10
+
+
+def test_observer_cli_defaults_match_the_live_recommendation() -> None:
+    source = (TOOLS / "tls_observer.py").read_text(encoding="utf-8")
+    assert "default=RECOMMENDED_LIVE_SECONDS" in source
+    assert "default=RECOMMENDED_LIVE_MAX_CONNECTIONS" in source
+    # No superseded synthetic default survives on the production CLI path.
+    assert "default=30.0" not in source
+
+
+def test_observer_run_summary_carries_no_payload_or_peer_address(tmp_path: Path) -> None:
+    cert_dir = tmp_path / "certs"
+    local_ca.generate(cert_dir, hostname="p0c2a.test", days=1)
+    port, ready = _free_port(), threading.Event()
+    log = tmp_path / "privacy.json"
+
+    def server() -> None:
+        tls_observer.run_observer(
+            cert_dir / "server.crt", cert_dir / "server.key", port, "127.0.0.1",
+            max_connections=1, total_timeout=10, ready_event=ready, log_path=log,
+            required_sni="p0c2a.test",
+        )
+
+    thread = threading.Thread(target=server)
+    thread.start()
+    assert ready.wait(2)
+    context = ssl.create_default_context(cafile=str(cert_dir / "ca.crt"))
+    with socket.create_connection(("127.0.0.1", port), timeout=2) as raw:
+        with context.wrap_socket(raw, server_hostname="p0c2a.test") as client:
+            client.sendall(
+                b"GET /objects/42?token=TOPSECRET HTTP/1.1\r\n"
+                b"Host: p0c2a.test\r\nAuthorization: SECRET-VALUE\r\n\r\n"
+            )
+    thread.join(5)
+    assert not thread.is_alive()
+    text = log.read_text(encoding="utf-8")
+    assert "TOPSECRET" not in text and "SECRET-VALUE" not in text
+    assert "127.0.0.1" not in text

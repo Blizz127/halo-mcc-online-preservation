@@ -75,7 +75,17 @@ P0 may complete only when:
    `evidence/p0c2d_live_blind_relay/`). Exact rollback completed before the relay deadline and a
    separate normal post-rollback launch succeeded. This proves opaque transport only; no TLS was
    terminated and no request, response, settings authority, CA acceptance, or pinning verdict was
-   observed. **P0-C2E manifest discovery remains not started**.
+   observed. The follow-on **P0-C2D1 exact-host TLS/SNI/ALPN observation rung was authorized and
+   halted at its starting gate**, before the direct baseline and before any live action: the
+   observer's 120 s hard runtime bound could not cover the measured live timeline, whose
+   redirect-verify-to-connect interval alone is 75 s (`E-P0C2D-004`) with the observer's clock
+   starting before it. No certificate was generated, no observer started, no redirect installed, and
+   no MCC behaviour or TLS verdict observed, so no A–F classification is possible. **P0-C2D1-R0**
+   corrects the observer's bounds and exit accounting under synthetic validation
+   (`E-P0C2D1R0-001` through `E-P0C2D1R0-004`,
+   `evidence/p0c2d1r0_observer_bounds_correction/`, `docs/PRELAUNCH_INTERCEPTION.md`). MCC
+   certificate acceptance and pinning therefore remain **unresolved for the fourth rung running**,
+   and **P0-C2E manifest discovery remains not started**.
 3. At least two controlled accounts and two Windows machines are available for session captures.
 4. The endpoint/domain inventory is reproducible.
 5. Tokens and personal identifiers are redacted from committed evidence.
